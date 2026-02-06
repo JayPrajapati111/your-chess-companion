@@ -53,7 +53,7 @@ const Index = () => {
                 title="Puzzles"
                 description="Solve tactical puzzles to improve your skills"
                 variant="purple"
-                onClick={() => navigate("/local-match")}
+                onClick={() => navigate("/puzzles")}
               />
               
               <GameModeCard

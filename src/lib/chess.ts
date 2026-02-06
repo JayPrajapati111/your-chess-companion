@@ -24,7 +24,8 @@ export interface Move {
   isEnPassant?: boolean;
 }
 
-// Unicode chess pieces
+// Chess.com style pieces - using filled/outlined distinction
+// White pieces are filled (outlined style), Black pieces are solid
 export const PIECE_SYMBOLS: Record<PieceColor, Record<PieceType, string>> = {
   white: {
     king: '♔',

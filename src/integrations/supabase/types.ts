@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      games: {
+        Row: {
+          black_player_id: string | null
+          created_at: string
+          id: string
+          moves: string[] | null
+          pgn: string | null
+          result: string
+          time_control: string | null
+          white_player_id: string | null
+        }
+        Insert: {
+          black_player_id?: string | null
+          created_at?: string
+          id?: string
+          moves?: string[] | null
+          pgn?: string | null
+          result: string
+          time_control?: string | null
+          white_player_id?: string | null
+        }
+        Update: {
+          black_player_id?: string | null
+          created_at?: string
+          id?: string
+          moves?: string[] | null
+          pgn?: string | null
+          result?: string
+          time_control?: string | null
+          white_player_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          draws: number | null
+          game_rating: number | null
+          id: string
+          losses: number | null
+          puzzle_rating: number | null
+          puzzles_solved: number | null
+          updated_at: string
+          user_id: string
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          draws?: number | null
+          game_rating?: number | null
+          id?: string
+          losses?: number | null
+          puzzle_rating?: number | null
+          puzzles_solved?: number | null
+          updated_at?: string
+          user_id: string
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          draws?: number | null
+          game_rating?: number | null
+          id?: string
+          losses?: number | null
+          puzzle_rating?: number | null
+          puzzles_solved?: number | null
+          updated_at?: string
+          user_id?: string
+          wins?: number | null
+        }
+        Relationships: []
+      }
+      puzzles: {
+        Row: {
+          created_at: string
+          fen: string
+          id: string
+          moves: string[]
+          rating: number | null
+          themes: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          fen: string
+          id?: string
+          moves: string[]
+          rating?: number | null
+          themes?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          fen?: string
+          id?: string
+          moves?: string[]
+          rating?: number | null
+          themes?: string[] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

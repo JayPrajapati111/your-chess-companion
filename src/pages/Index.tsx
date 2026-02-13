@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Monitor, Users, Puzzle, Swords, BookOpen } from "lucide-react";
+import { Monitor, Users, Puzzle, BookOpen, Crown } from "lucide-react";
 import { GameModeCard } from "@/components/GameModeCard";
 import { ProfileSidebar } from "@/components/ProfileSidebar";
 
@@ -63,6 +63,20 @@ const Index = () => {
                 variant="orange"
                 onClick={() => navigate("/lessons")}
               />
+            </div>
+
+            {/* Famous Players Link */}
+            <div
+              onClick={() => navigate("/players")}
+              className="mt-6 bg-card rounded-2xl border border-border p-5 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer flex items-center gap-4"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Crown className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Famous Chess Players</h3>
+                <p className="text-sm text-muted-foreground">Explore the greatest minds in chess history, their ratings, and achievements</p>
+              </div>
             </div>
           </div>
 

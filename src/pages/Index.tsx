@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Monitor, Users, Puzzle, Swords } from "lucide-react";
+import { Monitor, Users, Puzzle, Swords, BookOpen } from "lucide-react";
 import { GameModeCard } from "@/components/GameModeCard";
 import { ProfileSidebar } from "@/components/ProfileSidebar";
 
@@ -37,7 +37,7 @@ const Index = () => {
                 title="Play vs Computer"
                 description="Challenge the AI with adjustable difficulty and time controls"
                 variant="green"
-                onClick={() => navigate("/local-match")}
+                onClick={() => navigate("/computer")}
               />
               
               <GameModeCard
@@ -57,11 +57,11 @@ const Index = () => {
               />
               
               <GameModeCard
-                icon={Swords}
-                title="Quick Play"
-                description="Jump into a fast game with default settings"
+                icon={BookOpen}
+                title="Lessons"
+                description="Learn chess from beginner to advanced strategies"
                 variant="orange"
-                onClick={() => navigate("/local-match")}
+                onClick={() => navigate("/lessons")}
               />
             </div>
           </div>

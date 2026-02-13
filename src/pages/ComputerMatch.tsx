@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -28,6 +28,7 @@ const ComputerMatch = () => {
   const [gameKey, setGameKey] = useState(0);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [isThinking, setIsThinking] = useState(false);
+  const thinkingRef = useRef(false);
 
   const playerColor: PieceColor = "white";
   const aiColor: PieceColor = "black";
@@ -41,9 +42,12 @@ const ComputerMatch = () => {
 
   // AI move
   useEffect(() => {
-    if (currentTurn !== aiColor || !isGameActive || isThinking) return;
+    if (currentTurn !== aiColor || !isGameActive) return;
+    if (thinkingRef.current) return;
 
+    thinkingRef.current = true;
     setIsThinking(true);
+
     const timer = setTimeout(() => {
       const move = getAIMove(board, aiColor, difficulty);
       if (move) {
@@ -58,25 +62,28 @@ const ComputerMatch = () => {
         }
 
         setBoard(newBoard);
-        const nextTurn = playerColor;
-        setCurrentTurn(nextTurn);
+        setCurrentTurn(playerColor);
 
-        if (isCheckmate(newBoard, nextTurn)) {
+        if (isCheckmate(newBoard, playerColor)) {
           setGameStatus("checkmate");
           setWinner(aiColor);
-        } else if (isStalemate(newBoard, nextTurn)) {
+        } else if (isStalemate(newBoard, playerColor)) {
           setGameStatus("stalemate");
-        } else if (isKingInCheck(newBoard, nextTurn)) {
+        } else if (isKingInCheck(newBoard, playerColor)) {
           setGameStatus("check");
         } else {
           setGameStatus("playing");
         }
       }
+      thinkingRef.current = false;
       setIsThinking(false);
     }, difficulty === "hard" ? 800 : 400);
 
-    return () => clearTimeout(timer);
-  }, [currentTurn, board, aiColor, playerColor, isGameActive, difficulty, isThinking]);
+    return () => {
+      clearTimeout(timer);
+      thinkingRef.current = false;
+    };
+  }, [currentTurn, board, aiColor, playerColor, isGameActive, difficulty]);
 
   const handleSquareClick = useCallback(
     (row: number, col: number) => {
@@ -142,6 +149,7 @@ const ComputerMatch = () => {
     setGameStatus("playing");
     setWinner(null);
     setIsThinking(false);
+    thinkingRef.current = false;
     setGameKey((k) => k + 1);
   };
 

@@ -8,6 +8,7 @@ import LocalMatch from "./pages/LocalMatch";
 import ComputerMatch from "./pages/ComputerMatch";
 import Puzzles from "./pages/Puzzles";
 import Lessons from "./pages/Lessons";
+import Players from "./pages/Players";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/computer" element={<ComputerMatch />} />
           <Route path="/puzzles" element={<Puzzles />} />
           <Route path="/lessons" element={<Lessons />} />
+          <Route path="/players" element={<Players />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

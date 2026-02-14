@@ -48,6 +48,11 @@ const ComputerMatch = () => {
     thinkingRef.current = true;
     setIsThinking(true);
 
+    // Realistic thinking delay based on difficulty
+    const baseDelay = difficulty === "easy" ? 800 : difficulty === "medium" ? 1500 : 2500;
+    const randomExtra = Math.floor(Math.random() * (difficulty === "hard" ? 1500 : 800));
+    const thinkingTime = baseDelay + randomExtra;
+
     const timer = setTimeout(() => {
       const move = getAIMove(board, aiColor, difficulty);
       if (move) {
@@ -77,7 +82,7 @@ const ComputerMatch = () => {
       }
       thinkingRef.current = false;
       setIsThinking(false);
-    }, difficulty === "hard" ? 800 : 400);
+    }, thinkingTime);
 
     return () => {
       clearTimeout(timer);
@@ -170,7 +175,17 @@ const ComputerMatch = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Play vs Computer</h1>
             <p className="text-muted-foreground">
               Difficulty: <span className="capitalize font-semibold text-primary">{difficulty}</span>
-              {isThinking && <span className="ml-2 animate-pulse">• Thinking...</span>}
+              {isThinking && (
+                <span className="ml-2 inline-flex items-center gap-1">
+                  <span className="animate-pulse">🤔</span>
+                  <span className="text-sm animate-pulse">Thinking</span>
+                  <span className="inline-flex gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                </span>
+              )}
             </p>
           </div>
         </div>

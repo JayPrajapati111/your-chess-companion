@@ -1,4 +1,4 @@
-import { Board, PieceColor, PieceType, Position, getValidMoves, makeMove, isKingInCheck, isCheckmate, isStalemate } from "./chess";
+import { Board, PieceColor, PieceType, Position, getValidMoves, makeMove, isKingInCheck, isCheckmate, isStalemate, CastlingRights, createInitialCastlingRights } from "./chess";
 
 export type Difficulty = "easy" | "medium" | "hard";
 

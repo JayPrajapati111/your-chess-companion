@@ -5,16 +5,22 @@ import {
   Board,
   Position,
   PieceColor,
+  PieceType,
   PIECE_SYMBOLS,
+  CastlingRights,
   createInitialBoard,
+  createInitialCastlingRights,
   getValidMoves,
   makeMove,
+  updateCastlingRights,
   isKingInCheck,
   isCheckmate,
   isStalemate,
+  isPromotionMove,
 } from "@/lib/chess";
 import { Difficulty, getAIMove } from "@/lib/chessAI";
 import { ChessTimer, TimeControl, TimeControlSelector, TIME_CONTROLS } from "@/components/ChessTimer";
+import { PromotionDialog } from "@/components/PromotionDialog";
 
 const ComputerMatch = () => {
   const [board, setBoard] = useState<Board>(createInitialBoard);
@@ -29,6 +35,8 @@ const ComputerMatch = () => {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [isThinking, setIsThinking] = useState(false);
   const thinkingRef = useRef(false);
+  const [castlingRights, setCastlingRights] = useState<CastlingRights>(createInitialCastlingRights);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Position; to: Position } | null>(null);
 
   const playerColor: PieceColor = "white";
   const aiColor: PieceColor = "black";
@@ -36,70 +44,76 @@ const ComputerMatch = () => {
 
   const handleTimeOut = useCallback((loser: PieceColor) => {
     setGameStatus("timeout");
-    const gameWinner = loser === "white" ? "black" : "white";
-    setWinner(gameWinner);
+    setWinner(loser === "white" ? "black" : "white");
+  }, []);
+
+  const performMove = useCallback((b: Board, from: Position, to: Position, color: PieceColor, rights: CastlingRights, promotionPiece?: PieceType) => {
+    const capturedPiece = b[to.row][to.col];
+    const newRights = updateCastlingRights(rights, b, from, to);
+    const newBoard = makeMove(b, from, to, promotionPiece);
+
+    if (capturedPiece) {
+      setCapturedPieces((prev) => ({
+        ...prev,
+        [color]: [...prev[color], PIECE_SYMBOLS[capturedPiece.color][capturedPiece.type]],
+      }));
+    }
+
+    setBoard(newBoard);
+    setCastlingRights(newRights);
+
+    const nextColor = color === "white" ? "black" : "white";
+    setCurrentTurn(nextColor);
+
+    if (isCheckmate(newBoard, nextColor, newRights)) {
+      setGameStatus("checkmate");
+      setWinner(color);
+    } else if (isStalemate(newBoard, nextColor, newRights)) {
+      setGameStatus("stalemate");
+    } else if (isKingInCheck(newBoard, nextColor)) {
+      setGameStatus("check");
+    } else {
+      setGameStatus("playing");
+    }
+
+    return { newBoard, newRights };
   }, []);
 
   // AI move
   useEffect(() => {
-    if (currentTurn !== aiColor || !isGameActive) return;
+    if (currentTurn !== aiColor || !isGameActive || pendingPromotion) return;
     if (thinkingRef.current) return;
 
     thinkingRef.current = true;
     setIsThinking(true);
 
-    // Realistic thinking delay based on difficulty
     const baseDelay = difficulty === "easy" ? 800 : difficulty === "medium" ? 1500 : 2500;
     const randomExtra = Math.floor(Math.random() * (difficulty === "hard" ? 1500 : 800));
-    const thinkingTime = baseDelay + randomExtra;
 
     const timer = setTimeout(() => {
       const move = getAIMove(board, aiColor, difficulty);
       if (move) {
-        const capturedPiece = board[move.to.row][move.to.col];
-        const newBoard = makeMove(board, move.from, move.to);
-
-        if (capturedPiece) {
-          setCapturedPieces((prev) => ({
-            ...prev,
-            [aiColor]: [...prev[aiColor], PIECE_SYMBOLS[capturedPiece.color][capturedPiece.type]],
-          }));
-        }
-
-        setBoard(newBoard);
-        setCurrentTurn(playerColor);
-
-        if (isCheckmate(newBoard, playerColor)) {
-          setGameStatus("checkmate");
-          setWinner(aiColor);
-        } else if (isStalemate(newBoard, playerColor)) {
-          setGameStatus("stalemate");
-        } else if (isKingInCheck(newBoard, playerColor)) {
-          setGameStatus("check");
-        } else {
-          setGameStatus("playing");
-        }
+        // AI always promotes to queen
+        const promoType = isPromotionMove(board, move.from, move.to) ? "queen" : undefined;
+        performMove(board, move.from, move.to, aiColor, castlingRights, promoType);
       }
       thinkingRef.current = false;
       setIsThinking(false);
-    }, thinkingTime);
+    }, baseDelay + randomExtra);
 
-    return () => {
-      clearTimeout(timer);
-      thinkingRef.current = false;
-    };
-  }, [currentTurn, board, aiColor, playerColor, isGameActive, difficulty]);
+    return () => { clearTimeout(timer); thinkingRef.current = false; };
+  }, [currentTurn, board, aiColor, isGameActive, difficulty, castlingRights, pendingPromotion, performMove]);
 
   const handleSquareClick = useCallback(
     (row: number, col: number) => {
       if (gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout") return;
-      if (currentTurn !== playerColor || isThinking) return;
+      if (currentTurn !== playerColor || isThinking || pendingPromotion) return;
 
       const clickedPiece = board[row][col];
 
       if (clickedPiece && clickedPiece.color === playerColor) {
         setSelectedSquare({ row, col });
-        const moves = getValidMoves(board, { row, col }, playerColor);
+        const moves = getValidMoves(board, { row, col }, playerColor, castlingRights);
         const legalMoves = moves.filter((move) => {
           const testBoard = makeMove(board, { row, col }, move);
           return !isKingInCheck(testBoard, playerColor);
@@ -111,39 +125,29 @@ const ComputerMatch = () => {
       if (selectedSquare) {
         const isValidMove = validMoves.some((m) => m.row === row && m.col === col);
         if (isValidMove) {
-          const capturedPiece = board[row][col];
-          const newBoard = makeMove(board, selectedSquare, { row, col });
-
-          if (capturedPiece) {
-            setCapturedPieces((prev) => ({
-              ...prev,
-              [playerColor]: [...prev[playerColor], PIECE_SYMBOLS[capturedPiece.color][capturedPiece.type]],
-            }));
+          if (isPromotionMove(board, selectedSquare, { row, col })) {
+            setPendingPromotion({ from: selectedSquare, to: { row, col } });
+            return;
           }
-
-          setBoard(newBoard);
+          performMove(board, selectedSquare, { row, col }, playerColor, castlingRights);
           setSelectedSquare(null);
           setValidMoves([]);
-          setCurrentTurn(aiColor);
-
-          if (isCheckmate(newBoard, aiColor)) {
-            setGameStatus("checkmate");
-            setWinner(playerColor);
-          } else if (isStalemate(newBoard, aiColor)) {
-            setGameStatus("stalemate");
-          } else if (isKingInCheck(newBoard, aiColor)) {
-            setGameStatus("check");
-          } else {
-            setGameStatus("playing");
-          }
         } else {
           setSelectedSquare(null);
           setValidMoves([]);
         }
       }
     },
-    [board, selectedSquare, validMoves, currentTurn, gameStatus, playerColor, isThinking]
+    [board, selectedSquare, validMoves, currentTurn, gameStatus, playerColor, isThinking, castlingRights, pendingPromotion, performMove]
   );
+
+  const handlePromotion = useCallback((piece: PieceType) => {
+    if (!pendingPromotion) return;
+    performMove(board, pendingPromotion.from, pendingPromotion.to, playerColor, castlingRights, piece);
+    setPendingPromotion(null);
+    setSelectedSquare(null);
+    setValidMoves([]);
+  }, [pendingPromotion, board, playerColor, castlingRights, performMove]);
 
   const resetGame = () => {
     setBoard(createInitialBoard());
@@ -155,6 +159,8 @@ const ComputerMatch = () => {
     setWinner(null);
     setIsThinking(false);
     thinkingRef.current = false;
+    setCastlingRights(createInitialCastlingRights());
+    setPendingPromotion(null);
     setGameKey((k) => k + 1);
   };
 
@@ -197,9 +203,7 @@ const ComputerMatch = () => {
               key={d}
               onClick={() => { setDifficulty(d); resetGame(); }}
               className={`px-4 py-2 rounded-lg font-semibold capitalize transition-colors ${
-                difficulty === d
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground border border-border hover:bg-secondary"
+                difficulty === d ? "bg-primary text-primary-foreground" : "bg-card text-foreground border border-border hover:bg-secondary"
               }`}
             >
               {d}
@@ -223,24 +227,18 @@ const ComputerMatch = () => {
                 </div>
                 {gameStatus === "check" && <span className="text-destructive font-bold animate-pulse">CHECK!</span>}
                 {gameStatus === "checkmate" && (
-                  <span className="text-primary font-bold">
-                    CHECKMATE! {winner === playerColor ? "You win!" : "Computer wins!"}
-                  </span>
+                  <span className="text-primary font-bold">CHECKMATE! {winner === playerColor ? "You win!" : "Computer wins!"}</span>
                 )}
                 {gameStatus === "stalemate" && <span className="text-muted-foreground font-bold">STALEMATE! Draw!</span>}
                 {gameStatus === "timeout" && (
-                  <span className="text-destructive font-bold">
-                    TIME OUT! {winner === playerColor ? "You win!" : "Computer wins!"}
-                  </span>
+                  <span className="text-destructive font-bold">TIME OUT! {winner === playerColor ? "You win!" : "Computer wins!"}</span>
                 )}
               </div>
 
               {/* Captured by Computer */}
               <div className="flex items-center gap-2 h-8">
                 <span className="text-xs text-muted-foreground">Computer captured:</span>
-                <div className="flex gap-1 text-2xl">
-                  {capturedPieces.black.map((piece, i) => <span key={i} className="drop-shadow-sm">{piece}</span>)}
-                </div>
+                <div className="flex gap-1 text-2xl">{capturedPieces.black.map((p, i) => <span key={i} className="drop-shadow-sm">{p}</span>)}</div>
               </div>
 
               {/* Board */}
@@ -272,10 +270,8 @@ const ComputerMatch = () => {
                               <span
                                 className={`text-3xl md:text-5xl select-none transition-transform duration-150
                                   ${selected ? "scale-110" : ""}
-                                  ${piece.color === "white"
-                                    ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]"
-                                    : "text-gray-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"
-                                  }`}
+                                  ${piece.color === "white" ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]" : "text-gray-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"}
+                                `}
                                 style={{ WebkitTextStroke: piece.color === "white" ? "1px #333" : "none" }}
                               >
                                 {PIECE_SYMBOLS[piece.color][piece.type]}
@@ -300,9 +296,7 @@ const ComputerMatch = () => {
               {/* Captured by You */}
               <div className="flex items-center gap-2 h-8">
                 <span className="text-xs text-muted-foreground">You captured:</span>
-                <div className="flex gap-1 text-2xl">
-                  {capturedPieces.white.map((piece, i) => <span key={i}>{piece}</span>)}
-                </div>
+                <div className="flex gap-1 text-2xl">{capturedPieces.white.map((p, i) => <span key={i}>{p}</span>)}</div>
               </div>
 
               <button onClick={resetGame} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity">
@@ -318,6 +312,8 @@ const ComputerMatch = () => {
           </div>
         </div>
       </div>
+
+      {pendingPromotion && <PromotionDialog color={playerColor} onSelect={handlePromotion} />}
     </div>
   );
 };

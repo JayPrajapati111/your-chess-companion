@@ -11,7 +11,8 @@ interface ChessPlayer {
   worldChampion?: string;
   achievements: string[];
   bio: string;
-  image: string; // emoji flag placeholder
+  photo: string;
+  flag: string;
 }
 
 const FAMOUS_PLAYERS: ChessPlayer[] = [
@@ -30,7 +31,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won World Rapid & Blitz Championships multiple times",
     ],
     bio: "Widely regarded as the greatest chess player of all time, Magnus Carlsen became a grandmaster at 13 and dominated chess for over a decade.",
-    image: "🇳🇴",
+    photo: "/players/magnus-carlsen.jpg",
+    flag: "🇳🇴",
   },
   {
     name: "Garry Kasparov",
@@ -46,7 +48,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Revolutionized chess opening theory",
     ],
     bio: "Kasparov dominated chess from 1985 to 2005 and is considered one of the greatest players ever. His rivalry with Anatoly Karpov is legendary.",
-    image: "🇷🇺",
+    photo: "/players/garry-kasparov.jpg",
+    flag: "🇷🇺",
   },
   {
     name: "Bobby Fischer",
@@ -62,7 +65,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Created Fischer Random Chess (Chess960)",
     ],
     bio: "Bobby Fischer's meteoric rise and 1972 World Championship match against Boris Spassky captivated the world during the Cold War era.",
-    image: "🇺🇸",
+    photo: "/players/bobby-fischer.jpg",
+    flag: "🇺🇸",
   },
   {
     name: "Viswanathan Anand",
@@ -78,7 +82,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Pioneer who inspired a generation of Indian chess players",
     ],
     bio: "Known as 'The Lightning Kid' for his rapid play, Anand is one of the most versatile champions and a beloved figure in world chess.",
-    image: "🇮🇳",
+    photo: "/players/viswanathan-anand.jpg",
+    flag: "🇮🇳",
   },
   {
     name: "Ding Liren",
@@ -95,7 +100,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won Candidates Tournament 2023",
     ],
     bio: "Ding Liren made history by becoming the first Chinese player to win the World Chess Championship, defeating Ian Nepomniachtchi in 2023.",
-    image: "🇨🇳",
+    photo: "/players/ding-liren.jpg",
+    flag: "🇨🇳",
   },
   {
     name: "Judit Polgár",
@@ -110,7 +116,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Peak ranking #8 in the world (open category)",
     ],
     bio: "Judit Polgár broke every gender barrier in chess, competing exclusively in open tournaments and defeating nearly every World Champion of her era.",
-    image: "🇭🇺",
+    photo: "/players/judit-polgar.jpg",
+    flag: "🇭🇺",
   },
   {
     name: "Hikaru Nakamura",
@@ -126,7 +133,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Candidates Tournament finalist 2024",
     ],
     bio: "Hikaru Nakamura is known for his exceptional speed chess and has become the most popular chess personality on the internet through streaming.",
-    image: "🇺🇸",
+    photo: "/players/hikaru-nakamura.jpg",
+    flag: "🇺🇸",
   },
   {
     name: "D. Gukesh",
@@ -143,7 +151,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won gold medal at Chess Olympiad 2024",
     ],
     bio: "Dommaraju Gukesh stunned the chess world by becoming the youngest World Chess Champion ever in 2024, defeating Ding Liren.",
-    image: "🇮🇳",
+    photo: "/players/gukesh.jpg",
+    flag: "🇮🇳",
   },
   {
     name: "Hou Yifan",
@@ -158,7 +167,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Professor at Shenzhen University",
     ],
     bio: "Hou Yifan is the strongest active female chess player and one of the youngest GMs in history, known for competing in open tournaments.",
-    image: "🇨🇳",
+    photo: "/players/hou-yifan.jpg",
+    flag: "🇨🇳",
   },
   {
     name: "Nona Gaprindashvili",
@@ -174,7 +184,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Pioneer who broke gender barriers in chess",
     ],
     bio: "Nona Gaprindashvili made history as the first woman to earn the Grandmaster title, paving the way for future generations of female players.",
-    image: "🇬🇪",
+    photo: "/players/nona-gaprindashvili.jpg",
+    flag: "🇬🇪",
   },
   {
     name: "Wenjun Ju",
@@ -190,7 +201,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Dominated women's chess for half a decade",
     ],
     bio: "Ju Wenjun defended her Women's World Championship title multiple times and is one of the strongest female players in history.",
-    image: "🇨🇳",
+    photo: "/players/wenjun-ju.jpg",
+    flag: "🇨🇳",
   },
   {
     name: "Maia Chiburdanidze",
@@ -206,7 +218,8 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won numerous Chess Olympiad medals",
     ],
     bio: "Maia Chiburdanidze became the youngest Women's World Champion in 1978 and dominated women's chess for over a decade.",
-    image: "🇬🇪",
+    photo: "/players/maia-chiburdanidze.jpg",
+    flag: "🇬🇪",
   },
 ];
 
@@ -231,15 +244,20 @@ const Players = () => {
               className="bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-all"
             >
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
+              <div className="flex items-start gap-4 mb-4">
+                <img
+                  src={player.photo}
+                  alt={player.name}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-border shrink-0"
+                />
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">{player.image}</span>
-                    <h2 className="text-xl font-bold text-foreground">{player.name}</h2>
+                    <span className="text-lg">{player.flag}</span>
+                    <h2 className="text-xl font-bold text-foreground truncate">{player.name}</h2>
                   </div>
                   <p className="text-sm text-muted-foreground">{player.country} • Born {player.born}</p>
                 </div>
-                <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full">
+                <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full shrink-0">
                   {player.title}
                 </span>
               </div>

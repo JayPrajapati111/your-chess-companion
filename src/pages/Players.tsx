@@ -248,7 +248,7 @@ const Players = () => {
                 <img
                   src={player.photo}
                   alt={player.name}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-border shrink-0"
+                  className="w-24 h-24 rounded-xl object-cover border-2 border-border shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

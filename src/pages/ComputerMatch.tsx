@@ -19,9 +19,11 @@ import {
   isPromotionMove,
 } from "@/lib/chess";
 import { Difficulty, getAIMove } from "@/lib/chessAI";
-import { ChessTimer, TimeControl, TimeControlSelector, TIME_CONTROLS } from "@/components/ChessTimer";
+import { ChessTimer, TimeControl, TIME_CONTROLS } from "@/components/ChessTimer";
 import { PromotionDialog } from "@/components/PromotionDialog";
 import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
+import { TimeControlDialog } from "@/components/TimeControlDialog";
+import { GameEndDialog } from "@/components/GameEndDialog";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -36,7 +38,7 @@ const ComputerMatch = () => {
   const [capturedPieces, setCapturedPieces] = useState<{ white: string[]; black: string[] }>({ white: [], black: [] });
   const [gameStatus, setGameStatus] = useState<"playing" | "checkmate" | "stalemate" | "check" | "timeout">("playing");
   const [winner, setWinner] = useState<PieceColor | null>(null);
-  const [timeControl, setTimeControl] = useState<TimeControl>(TIME_CONTROLS[5]);
+  const [timeControl, setTimeControl] = useState<TimeControl | null>(null);
   const [gameKey, setGameKey] = useState(0);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [isThinking, setIsThinking] = useState(false);
@@ -47,11 +49,12 @@ const ComputerMatch = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [moveNumber, setMoveNumber] = useState(1);
+  const [showEndDialog, setShowEndDialog] = useState(false);
 
   const aiColor: PieceColor = playerColor === "white" ? "black" : "white";
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
+  const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout";
 
-  // Board orientation: if player is black, flip the board
   const isFlipped = playerColor === "black";
   const displayFiles = isFlipped ? [...FILES].reverse() : FILES;
   const displayRanks = isFlipped ? [...RANKS].reverse() : RANKS;
@@ -61,6 +64,7 @@ const ComputerMatch = () => {
   const handleTimeOut = useCallback((loser: PieceColor) => {
     setGameStatus("timeout");
     setWinner(loser === "white" ? "black" : "white");
+    setShowEndDialog(true);
   }, []);
 
   const performMove = useCallback((b: Board, from: Position, to: Position, color: PieceColor, rights: CastlingRights, promotionPiece?: PieceType) => {
@@ -81,7 +85,6 @@ const ComputerMatch = () => {
     const isMate = isCheckmate(newBoard, nextColor, newRights);
     const isCastling = movingPiece?.type === "king" && Math.abs(to.col - from.col) === 2;
 
-    // Record move
     const record: MoveRecord = {
       moveNumber: color === "white" ? moveNumber : moveNumber,
       color,
@@ -99,14 +102,15 @@ const ComputerMatch = () => {
 
     setBoard(newBoard);
     setCastlingRights(newRights);
-
     setCurrentTurn(nextColor);
 
     if (isMate) {
       setGameStatus("checkmate");
       setWinner(color);
+      setShowEndDialog(true);
     } else if (isStalemate(newBoard, nextColor, newRights)) {
       setGameStatus("stalemate");
+      setShowEndDialog(true);
     } else if (isCheck) {
       setGameStatus("check");
     } else {
@@ -124,10 +128,8 @@ const ComputerMatch = () => {
     thinkingRef.current = true;
     setIsThinking(true);
 
-    // More realistic thinking: base + random + extra for hard
     const baseDelay = difficulty === "easy" ? 1200 : difficulty === "medium" ? 2500 : 4000;
     const randomExtra = Math.floor(Math.random() * (difficulty === "hard" ? 3000 : 1500));
-    // Simulate "deeper thought" with occasional extra pauses
     const thinkingSpike = Math.random() < 0.3 ? Math.floor(Math.random() * 2000) : 0;
 
     const timer = setTimeout(() => {
@@ -145,7 +147,7 @@ const ComputerMatch = () => {
 
   const handleSquareClick = useCallback(
     (row: number, col: number) => {
-      if (gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout") return;
+      if (isGameOver) return;
       if (currentTurn !== playerColor || isThinking || pendingPromotion) return;
 
       const clickedPiece = board[row][col];
@@ -177,7 +179,7 @@ const ComputerMatch = () => {
         }
       }
     },
-    [board, selectedSquare, validMoves, currentTurn, gameStatus, playerColor, isThinking, castlingRights, pendingPromotion, performMove]
+    [board, selectedSquare, validMoves, currentTurn, isGameOver, playerColor, isThinking, castlingRights, pendingPromotion, performMove]
   );
 
   const handlePromotion = useCallback((piece: PieceType) => {
@@ -203,16 +205,39 @@ const ComputerMatch = () => {
     setGameKey((k) => k + 1);
     setMoveHistory([]);
     setMoveNumber(1);
+    setShowEndDialog(false);
     if (color) {
       setPlayerColor(color);
       setGameStarted(true);
+    } else {
+      setGameStarted(false);
+      setTimeControl(null);
     }
   };
 
   const isSquareHighlighted = (row: number, col: number) => validMoves.some((m) => m.row === row && m.col === col);
   const isSquareSelected = (row: number, col: number) => selectedSquare?.row === row && selectedSquare?.col === col;
 
-  // Color selection screen
+  // Step 1: Time control selection
+  if (!timeControl) {
+    return (
+      <>
+        <div className="min-h-screen bg-background p-4 md:p-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-4 mb-8">
+              <Link to="/" className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
+                <ArrowLeft className="w-6 h-6 text-foreground" />
+              </Link>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Play vs Computer</h1>
+            </div>
+          </div>
+        </div>
+        <TimeControlDialog open={true} onSelect={(tc) => setTimeControl(tc)} />
+      </>
+    );
+  }
+
+  // Step 2: Color selection screen
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8">
@@ -225,6 +250,7 @@ const ComputerMatch = () => {
           </div>
 
           <div className="flex flex-col items-center gap-8 mt-16">
+            <p className="text-sm text-muted-foreground">Time: <span className="font-semibold text-primary">{timeControl.label}</span></p>
             <h2 className="text-xl font-semibold text-foreground">Choose Your Side</h2>
             <div className="flex gap-6">
               <button
@@ -311,10 +337,6 @@ const ComputerMatch = () => {
 
         <div className="flex justify-center">
           <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
-            <div className="w-full lg:w-48 order-first lg:order-none">
-              <TimeControlSelector selected={timeControl} onSelect={setTimeControl} />
-            </div>
-
             <div className="flex flex-col items-center gap-4">
               {/* Status */}
               <div className="flex items-center gap-4">
@@ -324,13 +346,6 @@ const ComputerMatch = () => {
                   {currentTurn === playerColor ? "⚪ Your" : "⚫ Computer's"} Turn
                 </div>
                 {gameStatus === "check" && <span className="text-destructive font-bold animate-pulse">CHECK!</span>}
-                {gameStatus === "checkmate" && (
-                  <span className="text-primary font-bold">CHECKMATE! {winner === playerColor ? "You win!" : "Computer wins!"}</span>
-                )}
-                {gameStatus === "stalemate" && <span className="text-muted-foreground font-bold">STALEMATE! Draw!</span>}
-                {gameStatus === "timeout" && (
-                  <span className="text-destructive font-bold">TIME OUT! {winner === playerColor ? "You win!" : "Computer wins!"}</span>
-                )}
               </div>
 
               {/* Captured by opponent (top) */}
@@ -404,8 +419,8 @@ const ComputerMatch = () => {
                 <button onClick={() => resetGame(playerColor)} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity">
                   New Game
                 </button>
-                <button onClick={() => setGameStarted(false)} className="px-6 py-3 bg-card text-foreground border border-border rounded-lg font-semibold hover:bg-secondary transition-colors">
-                  Change Side
+                <button onClick={() => resetGame()} className="px-6 py-3 bg-card text-foreground border border-border rounded-lg font-semibold hover:bg-secondary transition-colors">
+                  Change Settings
                 </button>
               </div>
             </div>
@@ -424,6 +439,15 @@ const ComputerMatch = () => {
       </div>
 
       {pendingPromotion && <PromotionDialog color={playerColor} onSelect={handlePromotion} />}
+
+      <GameEndDialog
+        open={showEndDialog}
+        status={isGameOver ? gameStatus as "checkmate" | "stalemate" | "timeout" : null}
+        winner={winner}
+        playerLabel={{ white: playerColor === "white" ? "You" : "Computer", black: playerColor === "black" ? "You" : "Computer" }}
+        onNewGame={() => resetGame(playerColor)}
+        onClose={() => setShowEndDialog(false)}
+      />
     </div>
   );
 };

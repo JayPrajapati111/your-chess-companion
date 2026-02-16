@@ -9,6 +9,7 @@ import ComputerMatch from "./pages/ComputerMatch";
 import Puzzles from "./pages/Puzzles";
 import Lessons from "./pages/Lessons";
 import Players from "./pages/Players";
+import Practice from "./pages/Practice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/puzzles" element={<Puzzles />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/players" element={<Players />} />
+          <Route path="/practice" element={<Practice />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

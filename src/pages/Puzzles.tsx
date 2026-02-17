@@ -136,6 +136,127 @@ const SAMPLE_PUZZLES = [
     theme: "Kingside Attack",
     description: "The knight heads to f4 via h5 to pressure the king.",
   },
+  // --- 15 NEW PUZZLES ---
+  {
+    id: "16",
+    fen: "r1bqk2r/pppp1Npp/2n2n2/2b1p3/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 0 4",
+    moves: ["d8e7"],
+    rating: 600,
+    theme: "Defend the King",
+    description: "Block the check while keeping your pieces safe.",
+  },
+  {
+    id: "17",
+    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 2 3",
+    moves: ["f3f7"],
+    rating: 650,
+    theme: "Checkmate in 1",
+    description: "The queen delivers checkmate on f7!",
+  },
+  {
+    id: "18",
+    fen: "rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+    moves: ["f6e4"],
+    rating: 750,
+    theme: "Win a Pawn",
+    description: "Capture the undefended e4 pawn with your knight.",
+  },
+  {
+    id: "19",
+    fen: "rnbqkbnr/ppp2ppp/8/3pp3/4P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+    moves: ["e4d5"],
+    rating: 700,
+    theme: "Center Exchange",
+    description: "Capture the center pawn to open lines.",
+  },
+  {
+    id: "20",
+    fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 4 4",
+    moves: ["d2d3"],
+    rating: 800,
+    theme: "Solid Development",
+    description: "Develop solidly and prepare castling.",
+  },
+  {
+    id: "21",
+    fen: "r2qkbnr/ppp1pppp/2n5/3pPb2/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 1 4",
+    moves: ["c2c4"],
+    rating: 900,
+    theme: "Pawn Break",
+    description: "Challenge the center with c4!",
+  },
+  {
+    id: "22",
+    fen: "r1bqk2r/ppp2ppp/2n2n2/3pp3/1bPP4/2N1PN2/PP3PPP/R1BQKB1R w KQkq - 0 5",
+    moves: ["a2a3"],
+    rating: 950,
+    theme: "Bishop Chase",
+    description: "Kick the bishop and gain tempo.",
+  },
+  {
+    id: "23",
+    fen: "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/4P3/3P1N2/PPP1BPPP/RNBQ1RK1 w - - 5 5",
+    moves: ["b2b4"],
+    rating: 1000,
+    theme: "Wing Attack",
+    description: "Launch a wing attack to gain space on the queenside.",
+  },
+  {
+    id: "24",
+    fen: "rnbq1rk1/ppp1ppbp/3p1np1/8/2PPP3/2N2N2/PP2BPPP/R1BQK2R w KQ - 0 6",
+    moves: ["e1g1"],
+    rating: 850,
+    theme: "Castle for Safety",
+    description: "Castle kingside to secure your king.",
+  },
+  {
+    id: "25",
+    fen: "r1bqk2r/ppp2ppp/2n5/3np3/2B5/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 6",
+    moves: ["c4d5"],
+    rating: 1100,
+    theme: "Win Material",
+    description: "Capture the knight that just jumped to d5.",
+  },
+  {
+    id: "26",
+    fen: "r1b1kbnr/ppppqppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    moves: ["d2d4"],
+    rating: 1150,
+    theme: "Open the Center",
+    description: "Strike in the center while the queen blocks development.",
+  },
+  {
+    id: "27",
+    fen: "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+    moves: ["b1c3"],
+    rating: 1200,
+    theme: "Develop Knights",
+    description: "Develop the knight to its most natural square.",
+  },
+  {
+    id: "28",
+    fen: "r1bqk2r/ppppbppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
+    moves: ["d7d6"],
+    rating: 1250,
+    theme: "Solid Defense",
+    description: "Reinforce the center and prepare to castle.",
+  },
+  {
+    id: "29",
+    fen: "r2qkbnr/pppb1ppp/2np4/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4",
+    moves: ["d2d4"],
+    rating: 1350,
+    theme: "Central Breakthrough",
+    description: "Open the center to exploit your superior development.",
+  },
+  {
+    id: "30",
+    fen: "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/4P3/2NP1N2/PPP1BPPP/R1BQ1RK1 w - - 0 7",
+    moves: ["c1e3"],
+    rating: 1450,
+    theme: "Bishop Development",
+    description: "Develop the last minor piece and eye the dark squares.",
+  },
 ];
 
 // Parse FEN string to board
@@ -282,8 +403,10 @@ const Puzzles = () => {
   const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8 relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">

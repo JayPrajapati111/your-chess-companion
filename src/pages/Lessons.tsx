@@ -1,7 +1,32 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, BookOpen, Target, Crown, Shield, Zap, ChevronRight, Swords, Eye, Flag, Puzzle, GraduationCap, TrendingUp, Check } from "lucide-react";
+import { ArrowLeft, BookOpen, Target, Crown, Shield, Zap, ChevronRight, Swords, Eye, Flag, Puzzle, GraduationCap, TrendingUp, Check, Lightbulb, Brain, Crosshair, Castle, Layers } from "lucide-react";
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { PIECE_SYMBOLS } from "@/lib/chess";
+
+// Mini board renderer for lesson visuals
+const MiniBoard = ({ pieces, size = 6 }: { pieces: { row: number; col: number; symbol: string }[]; size?: number }) => {
+  const grid = Array(size).fill(null).map(() => Array(size).fill(null));
+  pieces.forEach(p => { if (p.row < size && p.col < size) grid[p.row][p.col] = p.symbol; });
+  return (
+    <div className="inline-grid rounded-lg overflow-hidden border-2 border-border my-3" style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+      {grid.map((row, ri) =>
+        row.map((cell, ci) => (
+          <div key={`${ri}-${ci}`} className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-lg md:text-xl ${(ri + ci) % 2 === 0 ? "chess-square-light" : "chess-square-dark"}`}>
+            {cell}
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+interface LessonStep {
+  title: string;
+  text: string;
+  tip?: string;
+  board?: { pieces: { row: number; col: number; symbol: string }[]; size?: number };
+}
 
 interface Lesson {
   id: string;
@@ -11,8 +36,11 @@ interface Lesson {
   icon: React.ReactNode;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   estimatedTime: string;
-  content: { title: string; text: string; tip?: string }[];
+  content: LessonStep[];
 }
+
+const W = PIECE_SYMBOLS.white;
+const B = PIECE_SYMBOLS.black;
 
 const LESSONS: Lesson[] = [
   {
@@ -24,12 +52,12 @@ const LESSONS: Lesson[] = [
     difficulty: "Beginner",
     estimatedTime: "5 min",
     content: [
-      { title: "The Pawn", text: "Pawns move forward one square, or two from their starting position. They capture diagonally one square forward.", tip: "Pawns that reach the 8th rank promote to any piece — usually a queen!" },
-      { title: "The Rook", text: "Rooks move any number of squares horizontally or vertically. They are powerful in open files and on the 7th rank.", tip: "Two rooks on the 7th rank is called 'pigs on the 7th' — it's devastating!" },
-      { title: "The Knight", text: "Knights move in an 'L' shape: two squares in one direction and one perpendicular. They jump over other pieces.", tip: "A knight on the rim is dim! Keep knights centralized for maximum power." },
-      { title: "The Bishop", text: "Bishops move diagonally any number of squares. Each bishop stays on its starting color for the entire game.", tip: "The bishop pair (both bishops) is very strong in open positions." },
-      { title: "The Queen", text: "The Queen combines the rook and bishop's movements — she can move any number of squares in any direction.", tip: "Don't bring your queen out too early! She can be chased by minor pieces." },
-      { title: "The King", text: "The King moves one square in any direction. Protecting your king is the ultimate goal of chess.", tip: "In the endgame, the king becomes an attacking piece. Activate it!" },
+      { title: "The Pawn", text: "Pawns move forward one square, or two from their starting position. They capture diagonally one square forward.", tip: "Pawns that reach the 8th rank promote to any piece — usually a queen!", board: { pieces: [{ row: 3, col: 2, symbol: W.pawn }, { row: 4, col: 2, symbol: "·" }, { row: 2, col: 3, symbol: B.pawn }], size: 6 } },
+      { title: "The Rook", text: "Rooks move any number of squares horizontally or vertically. They are powerful in open files and on the 7th rank.", tip: "Two rooks on the 7th rank is called 'pigs on the 7th' — it's devastating!", board: { pieces: [{ row: 3, col: 3, symbol: W.rook }], size: 6 } },
+      { title: "The Knight", text: "Knights move in an 'L' shape: two squares in one direction and one perpendicular. They jump over other pieces.", tip: "A knight on the rim is dim! Keep knights centralized for maximum power.", board: { pieces: [{ row: 3, col: 3, symbol: W.knight }, { row: 1, col: 2, symbol: "·" }, { row: 1, col: 4, symbol: "·" }, { row: 2, col: 1, symbol: "·" }, { row: 2, col: 5, symbol: "·" }, { row: 4, col: 1, symbol: "·" }, { row: 4, col: 5, symbol: "·" }, { row: 5, col: 2, symbol: "·" }, { row: 5, col: 4, symbol: "·" }], size: 6 } },
+      { title: "The Bishop", text: "Bishops move diagonally any number of squares. Each bishop stays on its starting color for the entire game.", tip: "The bishop pair (both bishops) is very strong in open positions.", board: { pieces: [{ row: 3, col: 3, symbol: W.bishop }], size: 6 } },
+      { title: "The Queen", text: "The Queen combines the rook and bishop's movements — she can move any number of squares in any direction.", tip: "Don't bring your queen out too early! She can be chased by minor pieces.", board: { pieces: [{ row: 3, col: 3, symbol: W.queen }], size: 6 } },
+      { title: "The King", text: "The King moves one square in any direction. Protecting your king is the ultimate goal of chess.", tip: "In the endgame, the king becomes an attacking piece. Activate it!", board: { pieces: [{ row: 3, col: 3, symbol: W.king }, { row: 2, col: 2, symbol: "·" }, { row: 2, col: 3, symbol: "·" }, { row: 2, col: 4, symbol: "·" }, { row: 3, col: 2, symbol: "·" }, { row: 3, col: 4, symbol: "·" }, { row: 4, col: 2, symbol: "·" }, { row: 4, col: 3, symbol: "·" }, { row: 4, col: 4, symbol: "·" }], size: 6 } },
     ],
   },
   {
@@ -41,9 +69,9 @@ const LESSONS: Lesson[] = [
     difficulty: "Beginner",
     estimatedTime: "8 min",
     content: [
-      { title: "Control the Center", text: "Place pawns on e4/d4 (or e5/d5 as black) to dominate the board. Central control gives your pieces more mobility.", tip: "The center squares (e4, d4, e5, d5) are the most important real estate on the board." },
+      { title: "Control the Center", text: "Place pawns on e4/d4 (or e5/d5 as black) to dominate the board. Central control gives your pieces more mobility.", tip: "The center squares (e4, d4, e5, d5) are the most important real estate on the board.", board: { pieces: [{ row: 4, col: 3, symbol: W.pawn }, { row: 4, col: 4, symbol: W.pawn }, { row: 3, col: 3, symbol: "·" }, { row: 3, col: 4, symbol: "·" }], size: 8 } },
       { title: "Develop Your Pieces", text: "Move knights and bishops out early. Each move should contribute to development — don't move the same piece twice.", tip: "Aim to develop all minor pieces before move 10. Knights before bishops is usually best." },
-      { title: "Castle Early", text: "Castle within the first 10 moves to get your king to safety and connect your rooks.", tip: "Castling kingside (O-O) is generally safer than queenside (O-O-O)." },
+      { title: "Castle Early", text: "Castle within the first 10 moves to get your king to safety and connect your rooks.", tip: "Castling kingside (O-O) is generally safer than queenside (O-O-O).", board: { pieces: [{ row: 7, col: 5, symbol: W.rook }, { row: 7, col: 6, symbol: W.king }], size: 8 } },
       { title: "Don't Move Pawns Unnecessarily", text: "Every pawn move creates a weakness. Only advance pawns with a clear purpose.", tip: "Pawn moves can't be undone! Think twice before pushing them." },
       { title: "Connect Your Rooks", text: "After castling and developing pieces, your rooks should see each other on the back rank.", tip: "Rooks are strongest on open and semi-open files." },
     ],
@@ -57,11 +85,41 @@ const LESSONS: Lesson[] = [
     difficulty: "Beginner",
     estimatedTime: "10 min",
     content: [
-      { title: "1. e4 e5", text: "Both sides open by advancing the king's pawn two squares, fighting for the center immediately.", tip: "This is the most common start in chess history!" },
-      { title: "2. Nf3 Nc6", text: "Both knights develop to their natural squares, attacking the center pawns and preparing for castling.", tip: "Nf3 attacks the e5 pawn — Black must defend it." },
-      { title: "3. Bc4 — The Italian!", text: "The bishop comes to c4, eyeing the weak f7 square near Black's king. This is the Italian Game.", tip: "f7 is the weakest point in Black's position early on — only the king defends it." },
+      { title: "1. e4 e5", text: "Both sides open by advancing the king's pawn two squares, fighting for the center immediately.", tip: "This is the most common start in chess history!", board: { pieces: [{ row: 4, col: 4, symbol: W.pawn }, { row: 3, col: 4, symbol: B.pawn }], size: 8 } },
+      { title: "2. Nf3 Nc6", text: "Both knights develop to their natural squares, attacking the center pawns and preparing for castling.", tip: "Nf3 attacks the e5 pawn — Black must defend it.", board: { pieces: [{ row: 4, col: 4, symbol: W.pawn }, { row: 3, col: 4, symbol: B.pawn }, { row: 5, col: 5, symbol: W.knight }, { row: 0, col: 2, symbol: B.knight }], size: 8 } },
+      { title: "3. Bc4 — The Italian!", text: "The bishop comes to c4, eyeing the weak f7 square near Black's king. This is the Italian Game.", tip: "f7 is the weakest point in Black's position early on — only the king defends it.", board: { pieces: [{ row: 4, col: 4, symbol: W.pawn }, { row: 3, col: 4, symbol: B.pawn }, { row: 5, col: 5, symbol: W.knight }, { row: 0, col: 2, symbol: B.knight }, { row: 4, col: 2, symbol: W.bishop }], size: 8 } },
       { title: "Main Ideas for White", text: "White wants to develop quickly, castle kingside, and potentially launch an attack on the kingside.", tip: "Common plans include d3, O-O, c3, then d4 to open the center." },
       { title: "Black's Best Responses", text: "Black can play Bc5 (Giuoco Piano) for equal play, or Nf6 (Two Knights Defense) for a sharper game.", tip: "Both responses are solid — pick based on your style!" },
+    ],
+  },
+  {
+    id: "sicilian-defense",
+    title: "The Sicilian Defense",
+    description: "The most popular response to 1. e4",
+    category: "Openings",
+    icon: <Swords className="w-5 h-5" />,
+    difficulty: "Intermediate",
+    estimatedTime: "10 min",
+    content: [
+      { title: "1. e4 c5 — The Sicilian", text: "Black plays c5 to fight for the center asymmetrically. This leads to sharp, unbalanced positions.", tip: "The Sicilian is the most popular defense at the top level!", board: { pieces: [{ row: 4, col: 4, symbol: W.pawn }, { row: 3, col: 2, symbol: B.pawn }], size: 8 } },
+      { title: "The Open Sicilian (2. Nf3 d6 3. d4)", text: "White opens the center with d4, leading to the main lines. Black gets a half-open c-file for counterplay.", tip: "Black's counterplay on the queenside vs White's kingside attack is the classic battle." },
+      { title: "The Najdorf Variation", text: "After 5...a6, Black prepares ...e5 or ...b5 expansions. Played by Fischer, Kasparov, and many World Champions.", tip: "The Najdorf is the most theoretically dense opening in all of chess." },
+      { title: "Key Pawn Structures", text: "Black often has pawns on d6 and e6 (or e5), White on e4. The d5 break is a key theme for both sides.", tip: "Understanding pawn structures helps you find the right plans automatically.", board: { pieces: [{ row: 4, col: 4, symbol: W.pawn }, { row: 2, col: 3, symbol: B.pawn }, { row: 2, col: 4, symbol: B.pawn }], size: 8 } },
+    ],
+  },
+  {
+    id: "queens-gambit",
+    title: "The Queen's Gambit",
+    description: "A classical opening for strategic players",
+    category: "Openings",
+    icon: <Crown className="w-5 h-5" />,
+    difficulty: "Intermediate",
+    estimatedTime: "10 min",
+    content: [
+      { title: "1. d4 d5 2. c4 — The Gambit", text: "White offers the c4 pawn to divert Black's d5 pawn from the center. It's not a true gambit — White usually regains the pawn.", tip: "The Queen's Gambit is one of the oldest openings, played since the 15th century!", board: { pieces: [{ row: 4, col: 3, symbol: W.pawn }, { row: 3, col: 3, symbol: B.pawn }, { row: 4, col: 2, symbol: W.pawn }], size: 8 } },
+      { title: "Queen's Gambit Declined", text: "Black plays ...e6 to solidify d5. This leads to solid, strategic positions.", tip: "The QGD is considered one of the most solid openings for Black." },
+      { title: "Queen's Gambit Accepted", text: "Black takes on c4 with ...dxc4. White gets a central majority but Black develops quickly.", tip: "After accepting, don't try to hold the pawn — develop instead!" },
+      { title: "The Minority Attack", text: "A key strategic concept: White pushes b4-b5 on the queenside to create weaknesses in Black's pawn structure.", tip: "The minority attack (fewer pawns attacking more) is a fundamental strategic motif.", board: { pieces: [{ row: 5, col: 1, symbol: W.pawn }, { row: 4, col: 0, symbol: W.pawn }, { row: 3, col: 1, symbol: B.pawn }, { row: 3, col: 2, symbol: B.pawn }, { row: 3, col: 3, symbol: B.pawn }], size: 8 } },
     ],
   },
   {
@@ -73,10 +131,10 @@ const LESSONS: Lesson[] = [
     difficulty: "Intermediate",
     estimatedTime: "8 min",
     content: [
-      { title: "What is a Pin?", text: "A pin occurs when an attacking piece threatens a less valuable piece that cannot move because a more valuable piece is behind it.", tip: "Bishops and rooks are the best pinning pieces." },
+      { title: "What is a Pin?", text: "A pin occurs when an attacking piece threatens a less valuable piece that cannot move because a more valuable piece is behind it.", tip: "Bishops and rooks are the best pinning pieces.", board: { pieces: [{ row: 0, col: 4, symbol: B.king }, { row: 3, col: 4, symbol: B.knight }, { row: 5, col: 4, symbol: W.rook }], size: 6 } },
       { title: "Absolute vs Relative Pins", text: "An absolute pin is when the piece behind is the king (illegal to move). A relative pin is when the piece behind is valuable but can legally move.", tip: "Absolute pins are stronger — the pinned piece literally cannot move!" },
       { title: "Exploiting Pins", text: "Once a piece is pinned, pile up pressure on it. Add more attackers to the pinned piece to win material.", tip: "A common tactic: pin a knight with a bishop, then attack it with a pawn." },
-      { title: "What is a Skewer?", text: "A skewer is the reverse: the more valuable piece is in front. When it moves, you capture the piece behind.", tip: "Rook skewers along ranks and files are very common in endgames." },
+      { title: "What is a Skewer?", text: "A skewer is the reverse: the more valuable piece is in front. When it moves, you capture the piece behind.", tip: "Rook skewers along ranks and files are very common in endgames.", board: { pieces: [{ row: 1, col: 2, symbol: B.king }, { row: 1, col: 5, symbol: B.rook }, { row: 1, col: 0, symbol: W.rook }], size: 6 } },
       { title: "Practice Spotting Them", text: "In every position, look for pieces lined up on the same diagonal, rank, or file. These are potential pin/skewer opportunities!", tip: "Ask yourself: 'Are any of my opponent's pieces lined up?'" },
     ],
   },
@@ -89,8 +147,8 @@ const LESSONS: Lesson[] = [
     difficulty: "Intermediate",
     estimatedTime: "7 min",
     content: [
-      { title: "The Knight Fork", text: "Knights are the best forking pieces because they attack pieces that can't attack them back. The 'royal fork' (king + queen) is devastating.", tip: "Always check if your knight can land on a square attacking two valuable pieces." },
-      { title: "Pawn Forks", text: "Pawns can fork two pieces by advancing diagonally. These are often overlooked because pawns seem harmless.", tip: "A pawn fork is extra strong because pawns are worth the least — any capture is a win!" },
+      { title: "The Knight Fork", text: "Knights are the best forking pieces because they attack pieces that can't attack them back. The 'royal fork' (king + queen) is devastating.", tip: "Always check if your knight can land on a square attacking two valuable pieces.", board: { pieces: [{ row: 0, col: 2, symbol: B.king }, { row: 0, col: 4, symbol: B.queen }, { row: 1, col: 3, symbol: W.knight }], size: 6 } },
+      { title: "Pawn Forks", text: "Pawns can fork two pieces by advancing diagonally. These are often overlooked because pawns seem harmless.", tip: "A pawn fork is extra strong because pawns are worth the least — any capture is a win!", board: { pieces: [{ row: 2, col: 1, symbol: B.knight }, { row: 2, col: 3, symbol: B.bishop }, { row: 3, col: 2, symbol: W.pawn }], size: 6 } },
       { title: "Queen Forks", text: "The queen can fork along ranks, files, and diagonals. She's versatile but opponents often see queen forks coming.", tip: "Queen forks with check are the most forcing — your opponent must deal with the check first." },
       { title: "Discovery Attacks", text: "Moving one piece to reveal an attack from another piece behind it. If the moving piece also attacks something, it's a double attack.", tip: "Discovered checks are especially powerful — the piece that moves can do almost anything!" },
     ],
@@ -105,7 +163,7 @@ const LESSONS: Lesson[] = [
     estimatedTime: "12 min",
     content: [
       { title: "What is a Sacrifice?", text: "A sacrifice is intentionally giving up material (a piece or pawn) for a greater positional or tactical advantage.", tip: "The best sacrifices are those your opponent can't refuse!" },
-      { title: "The Greek Gift (Bxh7+)", text: "One of the most famous sacrifices: the bishop captures on h7 with check, followed by Ng5+ and Qh5 for a devastating kingside attack.", tip: "Look for this pattern when your opponent has castled kingside and the h-pawn is unprotected." },
+      { title: "The Greek Gift (Bxh7+)", text: "One of the most famous sacrifices: the bishop captures on h7 with check, followed by Ng5+ and Qh5 for a devastating kingside attack.", tip: "Look for this pattern when your opponent has castled kingside and the h-pawn is unprotected.", board: { pieces: [{ row: 0, col: 5, symbol: B.rook }, { row: 0, col: 6, symbol: B.king }, { row: 1, col: 5, symbol: B.pawn }, { row: 1, col: 7, symbol: B.pawn }, { row: 1, col: 6, symbol: W.bishop }], size: 8 } },
       { title: "Exchange Sacrifices", text: "Giving up a rook for a bishop or knight. This is common when the minor piece controls key squares or supports a pawn chain.", tip: "Positional exchange sacrifices are a hallmark of advanced play." },
       { title: "Calculating Sacrifices", text: "Before sacrificing, calculate all forcing moves (checks, captures, threats) to make sure you get enough compensation.", tip: "If you can't see a clear follow-up, the sacrifice is probably unsound." },
     ],
@@ -119,11 +177,26 @@ const LESSONS: Lesson[] = [
     difficulty: "Intermediate",
     estimatedTime: "10 min",
     content: [
-      { title: "Back Rank Mate", text: "When a king is trapped on the back rank by its own pawns and a rook or queen delivers checkmate along that rank.", tip: "Always give your king a 'luft' (escape square) by pushing h3 or a3." },
-      { title: "Smothered Mate", text: "A knight delivers checkmate when the king is surrounded by its own pieces and has no escape squares.", tip: "The classic: Qg8+! Rxg8, Nf7# — sacrifice the queen to smother the king!" },
+      { title: "Back Rank Mate", text: "When a king is trapped on the back rank by its own pawns and a rook or queen delivers checkmate along that rank.", tip: "Always give your king a 'luft' (escape square) by pushing h3 or a3.", board: { pieces: [{ row: 0, col: 6, symbol: B.king }, { row: 1, col: 5, symbol: B.pawn }, { row: 1, col: 6, symbol: B.pawn }, { row: 1, col: 7, symbol: B.pawn }, { row: 0, col: 3, symbol: W.rook }], size: 8 } },
+      { title: "Smothered Mate", text: "A knight delivers checkmate when the king is surrounded by its own pieces and has no escape squares.", tip: "The classic: Qg8+! Rxg8, Nf7# — sacrifice the queen to smother the king!", board: { pieces: [{ row: 0, col: 6, symbol: B.king }, { row: 0, col: 7, symbol: B.rook }, { row: 1, col: 5, symbol: B.pawn }, { row: 1, col: 6, symbol: B.pawn }, { row: 0, col: 5, symbol: W.knight }], size: 8 } },
       { title: "Deflection", text: "Forcing a defensive piece away from its duty, leaving something unprotected.", tip: "Ask: 'What is this piece defending?' Then find a way to lure it away." },
       { title: "Decoy", text: "Luring an enemy piece to a specific square where it becomes vulnerable to a tactic.", tip: "Decoys often involve sacrifices that the opponent must accept." },
       { title: "Zwischenzug (In-Between Move)", text: "Instead of making the expected move, inserting an unexpected intermediate move (often a check) that improves your position.", tip: "In every sequence, ask: 'Is there an in-between move I can play first?'" },
+    ],
+  },
+  {
+    id: "calculation",
+    title: "Calculation & Visualization",
+    description: "Train your mind to see moves ahead",
+    category: "Tactics",
+    icon: <Brain className="w-5 h-5" />,
+    difficulty: "Advanced",
+    estimatedTime: "12 min",
+    content: [
+      { title: "Candidate Moves", text: "Before calculating, identify 2-3 candidate moves worth considering. This focuses your thinking and saves time.", tip: "Kotov's method: find candidates first, then calculate each line only once." },
+      { title: "Checks, Captures, Threats", text: "Always start your calculation with forcing moves: checks first, then captures, then threats. These narrow the opponent's options.", tip: "CCT is the backbone of tactical calculation — make it automatic!" },
+      { title: "Visualization Training", text: "Practice seeing positions 3-5 moves deep without moving pieces. Start with simple positions and increase complexity.", tip: "Blindfold chess exercises dramatically improve visualization." },
+      { title: "When to Stop Calculating", text: "Stop when you reach a 'quiescent' position — one with no immediate tactics. Evaluate it using positional factors.", tip: "Don't calculate forever. If a position looks clearly better, play it!" },
     ],
   },
   {
@@ -136,7 +209,7 @@ const LESSONS: Lesson[] = [
     estimatedTime: "10 min",
     content: [
       { title: "Activate Your King!", text: "In endgames, the king becomes a fighting piece. March it towards the center and active squares.", tip: "The king can escort a passed pawn to promotion — don't keep it hiding!" },
-      { title: "The Opposition", text: "When two kings face each other with one square between them, whoever does NOT have to move has the opposition (advantage).", tip: "Opposition is the single most important concept in king and pawn endgames." },
+      { title: "The Opposition", text: "When two kings face each other with one square between them, whoever does NOT have to move has the opposition (advantage).", tip: "Opposition is the single most important concept in king and pawn endgames.", board: { pieces: [{ row: 2, col: 2, symbol: B.king }, { row: 4, col: 2, symbol: W.king }], size: 6 } },
       { title: "The Rule of the Square", text: "Draw a diagonal from the pawn to the promotion square. If the defending king can step into this square, it catches the pawn.", tip: "Count squares quickly in time pressure instead of calculating move by move." },
       { title: "Key Squares", text: "Every pawn has 'key squares' — if your king reaches them, the pawn will promote regardless of the opponent's king.", tip: "For a pawn on the 5th rank, the key squares are the three squares on the 6th rank in front." },
       { title: "Outside Passed Pawns", text: "A passed pawn on the side of the board lures the opponent's king away, allowing your king to capture on the other side.", tip: "This is the most common winning technique in king and pawn endgames." },
@@ -151,10 +224,25 @@ const LESSONS: Lesson[] = [
     difficulty: "Advanced",
     estimatedTime: "12 min",
     content: [
-      { title: "Rooks Belong Behind Passed Pawns", text: "Place your rook behind your own passed pawn (or behind the opponent's) — it gains more squares as the pawn advances.", tip: "Tarrasch's rule: rooks belong behind passed pawns, whether your own or your opponent's!" },
+      { title: "Rooks Belong Behind Passed Pawns", text: "Place your rook behind your own passed pawn (or behind the opponent's) — it gains more squares as the pawn advances.", tip: "Tarrasch's rule: rooks belong behind passed pawns, whether your own or your opponent's!", board: { pieces: [{ row: 2, col: 3, symbol: W.pawn }, { row: 5, col: 3, symbol: W.rook }], size: 6 } },
       { title: "The Lucena Position", text: "With your king on the queening square and rook nearby, use the 'bridge' technique to promote the pawn.", tip: "Learn the Lucena — it's the most important winning position in rook endgames." },
       { title: "The Philidor Position", text: "The key defensive technique: keep your rook on the 6th rank until the pawn advances, then check from behind.", tip: "This draw technique saves countless games. Know it by heart!" },
       { title: "Active Rook vs Passive Rook", text: "An active rook (cutting off the enemy king, attacking pawns) is worth much more than a passive rook stuck defending.", tip: "Sometimes giving up a pawn for rook activity is the right strategy." },
+    ],
+  },
+  {
+    id: "endgame-minor",
+    title: "Minor Piece Endgames",
+    description: "Bishop vs knight and other piece endings",
+    category: "Endgame",
+    icon: <Layers className="w-5 h-5" />,
+    difficulty: "Advanced",
+    estimatedTime: "10 min",
+    content: [
+      { title: "Bishop vs Knight", text: "Bishops prefer open positions; knights prefer closed ones. In endgames with pawns on both sides, bishops are usually better.", tip: "A bishop can control both sides of the board simultaneously — a knight can't!", board: { pieces: [{ row: 2, col: 2, symbol: W.bishop }, { row: 2, col: 4, symbol: B.knight }], size: 6 } },
+      { title: "Good Bishop vs Bad Bishop", text: "A 'good' bishop operates on the opposite color of its own pawns. A 'bad' bishop is blocked by its own pawns.", tip: "Place your pawns on the opposite color of your bishop!" },
+      { title: "The Wrong-Colored Bishop", text: "If your promotion square is the opposite color of your bishop, you may not be able to win even with an extra pawn.", tip: "This is a common drawing technique — learn when it applies." },
+      { title: "Knight Outposts", text: "A knight firmly planted on an outpost (supported by a pawn, can't be chased by enemy pawns) is incredibly powerful.", tip: "A knight on d5 or e5 can dominate the entire board." },
     ],
   },
   {
@@ -167,7 +255,7 @@ const LESSONS: Lesson[] = [
     estimatedTime: "15 min",
     content: [
       { title: "Weak Squares", text: "A weak square is one that can no longer be defended by pawns. Knights thrive on weak squares — plant them there!", tip: "Creating weak squares in your opponent's camp is a fundamental strategic goal." },
-      { title: "Pawn Structure", text: "Doubled, isolated, and backward pawns are structural weaknesses. Avoid creating them unless you gain compensation.", tip: "The pawn structure often determines the plans for both sides." },
+      { title: "Pawn Structure", text: "Doubled, isolated, and backward pawns are structural weaknesses. Avoid creating them unless you gain compensation.", tip: "The pawn structure often determines the plans for both sides.", board: { pieces: [{ row: 3, col: 3, symbol: W.pawn }, { row: 4, col: 3, symbol: W.pawn }, { row: 3, col: 1, symbol: W.pawn }], size: 6 } },
       { title: "Open Files", text: "Control open files with your rooks. An open file is one with no pawns — rooks dominate these lines.", tip: "Double your rooks on an open file for maximum pressure." },
       { title: "Piece Activity", text: "The most important positional concept: keep all your pieces active and coordinated. A passive piece is almost like being a piece down.", tip: "Before making a plan, ask: 'Are all my pieces active?'" },
       { title: "Prophylaxis", text: "Preventing your opponent's plans before they execute them. Ask 'What does my opponent want to do?' every move.", tip: "Karpov was the master of prophylaxis — study his games!" },
@@ -190,11 +278,26 @@ const LESSONS: Lesson[] = [
     ],
   },
   {
+    id: "attacking-play",
+    title: "The Art of Attack",
+    description: "How to launch and sustain a winning attack",
+    category: "Strategy",
+    icon: <Crosshair className="w-5 h-5" />,
+    difficulty: "Advanced",
+    estimatedTime: "12 min",
+    content: [
+      { title: "Prerequisites for Attack", text: "Before attacking, ensure: better development, center control, and a weakness in the enemy king's position.", tip: "Attacking without these elements usually backfires!" },
+      { title: "Piece Coordination", text: "Bring multiple pieces to the attacking zone. A lone queen attack rarely works — you need supporters.", tip: "Aim to have at least 3 pieces involved in a kingside attack.", board: { pieces: [{ row: 0, col: 6, symbol: B.king }, { row: 1, col: 5, symbol: B.pawn }, { row: 1, col: 7, symbol: B.pawn }, { row: 3, col: 5, symbol: W.knight }, { row: 3, col: 6, symbol: W.bishop }, { row: 2, col: 7, symbol: W.queen }], size: 8 } },
+      { title: "Pawn Storms", text: "Push pawns toward the enemy king to open lines. h4-h5 against a fianchettoed king is a classic theme.", tip: "Only storm when your own king is safe — usually on the opposite side." },
+      { title: "The Sacrifice to Open Lines", text: "Sometimes a sacrifice is needed to crack open the enemy king's shelter. Look for Bxh7+, Rxf7, or Nxf7 themes.", tip: "If two pieces are pointing at the enemy king, look for a breakthrough sacrifice!" },
+    ],
+  },
+  {
     id: "chess-psychology",
     title: "Chess Psychology",
     description: "The mental side of chess — mindset and decision-making",
     category: "Strategy",
-    icon: <Eye className="w-5 h-5" />,
+    icon: <Lightbulb className="w-5 h-5" />,
     difficulty: "Intermediate",
     estimatedTime: "6 min",
     content: [
@@ -208,7 +311,7 @@ const LESSONS: Lesson[] = [
 
 const CATEGORIES = ["Basics", "Openings", "Tactics", "Endgame", "Strategy"];
 
-const difficultyColors = {
+const difficultyColors: Record<string, string> = {
   Beginner: "text-green-500 bg-green-500/10",
   Intermediate: "text-yellow-500 bg-yellow-500/10",
   Advanced: "text-red-500 bg-red-500/10",
@@ -234,8 +337,10 @@ const Lessons = () => {
     const progressPercent = ((currentStep + 1) / selectedLesson.content.length) * 100;
 
     return (
-      <div className="min-h-screen bg-background p-4 md:p-8">
-        <div className="max-w-3xl mx-auto">
+      <div className="min-h-screen bg-background p-4 md:p-8 relative">
+        <div className="chess-bg" />
+        <div className="chess-bg-vignette" />
+        <div className="max-w-3xl mx-auto relative z-10">
           <button
             onClick={() => { setSelectedLesson(null); setCurrentStep(0); }}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
@@ -243,7 +348,7 @@ const Lessons = () => {
             <ArrowLeft className="w-5 h-5" /> Back to Lessons
           </button>
 
-          <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
+          <div className="bg-card/90 backdrop-blur-sm rounded-2xl border border-border p-6 md:p-8">
             <div className="flex items-center gap-3 mb-4">
               <span className={`text-xs font-semibold px-3 py-1 rounded-full ${difficultyColors[selectedLesson.difficulty]}`}>
                 {selectedLesson.difficulty}
@@ -273,8 +378,16 @@ const Lessons = () => {
                 {step.title}
               </h3>
               <p className="text-foreground leading-relaxed mb-4">{step.text}</p>
+
+              {/* Board Visual */}
+              {step.board && (
+                <div className="flex justify-center">
+                  <MiniBoard pieces={step.board.pieces} size={step.board.size} />
+                </div>
+              )}
+
               {step.tip && (
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3 mt-4">
                   <span className="text-lg">💡</span>
                   <div>
                     <span className="text-xs font-bold text-primary uppercase tracking-wide">Pro Tip</span>
@@ -333,8 +446,10 @@ const Lessons = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8 relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
+      <div className="max-w-4xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-6">
           <Link to="/" className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
             <ArrowLeft className="w-6 h-6 text-foreground" />
@@ -348,7 +463,7 @@ const Lessons = () => {
         </div>
 
         {/* Overall Progress */}
-        <div className="bg-card rounded-xl border border-border p-4 mb-6">
+        <div className="bg-card/90 backdrop-blur-sm rounded-xl border border-border p-4 mb-6">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-muted-foreground">Your Progress</span>
             <span className="font-semibold text-foreground">{Math.round((completedLessons.size / LESSONS.length) * 100)}%</span>
@@ -390,7 +505,7 @@ const Lessons = () => {
               <div
                 key={lesson.id}
                 onClick={() => setSelectedLesson(lesson)}
-                className={`bg-card rounded-2xl border p-5 hover:shadow-lg transition-all cursor-pointer group ${
+                className={`bg-card/90 backdrop-blur-sm rounded-2xl border p-5 hover:shadow-lg transition-all cursor-pointer group ${
                   isCompleted ? "border-primary/30 bg-primary/5" : "border-border hover:border-primary/50"
                 }`}
               >

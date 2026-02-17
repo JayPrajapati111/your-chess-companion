@@ -44,6 +44,7 @@ const buildBoard = (pieces: { row: number; col: number; type: PieceType; color: 
 };
 
 const SCENARIOS: PracticeScenario[] = [
+  // === CHECKMATE ===
   {
     id: "mate1-1",
     title: "Back Rank Mate",
@@ -77,6 +78,78 @@ const SCENARIOS: PracticeScenario[] = [
     solution: [{ from: { row: 5, col: 3 }, to: { row: 1, col: 3 } }],
     hint: "Cut off the king's escape and deliver check from a safe square.",
   },
+  {
+    id: "mate2-1",
+    title: "Smothered Mate",
+    description: "Deliver a smothered mate with your knight",
+    category: "Checkmate",
+    difficulty: "Hard",
+    board: buildBoard([
+      { row: 0, col: 6, type: "king", color: "black" },
+      { row: 0, col: 7, type: "rook", color: "black" },
+      { row: 1, col: 5, type: "pawn", color: "black" },
+      { row: 1, col: 6, type: "pawn", color: "black" },
+      { row: 2, col: 5, type: "knight", color: "white" },
+      { row: 7, col: 4, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 2, col: 5 }, to: { row: 0, col: 6 } }],
+    hint: "The king is surrounded by its own pieces. The knight can exploit this!",
+  },
+  {
+    id: "mate1-3",
+    title: "Two Rook Ladder Mate",
+    description: "Use two rooks to deliver a staircase checkmate",
+    category: "Checkmate",
+    difficulty: "Easy",
+    board: buildBoard([
+      { row: 0, col: 4, type: "king", color: "black" },
+      { row: 7, col: 0, type: "rook", color: "white" },
+      { row: 6, col: 1, type: "rook", color: "white" },
+      { row: 7, col: 7, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 6, col: 1 }, to: { row: 0, col: 1 } }],
+    hint: "One rook cuts off the rank, the other delivers the check!",
+  },
+  {
+    id: "mate1-4",
+    title: "Queen Sacrifice Mate",
+    description: "Sacrifice your queen to deliver checkmate with a rook",
+    category: "Checkmate",
+    difficulty: "Hard",
+    board: buildBoard([
+      { row: 0, col: 7, type: "king", color: "black" },
+      { row: 1, col: 6, type: "pawn", color: "black" },
+      { row: 1, col: 7, type: "pawn", color: "black" },
+      { row: 3, col: 7, type: "queen", color: "white" },
+      { row: 7, col: 0, type: "rook", color: "white" },
+      { row: 7, col: 4, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 7, col: 0 }, to: { row: 0, col: 0 } }],
+    hint: "The rook can deliver checkmate on the back rank!",
+  },
+  {
+    id: "mate1-5",
+    title: "Bishop & Queen Mate",
+    description: "Coordinate bishop and queen for a diagonal checkmate",
+    category: "Checkmate",
+    difficulty: "Medium",
+    board: buildBoard([
+      { row: 0, col: 6, type: "king", color: "black" },
+      { row: 1, col: 5, type: "pawn", color: "black" },
+      { row: 1, col: 7, type: "pawn", color: "black" },
+      { row: 4, col: 3, type: "bishop", color: "white" },
+      { row: 5, col: 4, type: "queen", color: "white" },
+      { row: 7, col: 4, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 5, col: 4 }, to: { row: 1, col: 4 } }],
+    hint: "The bishop covers the diagonal. Place your queen where she delivers check with the bishop's support!",
+  },
+
+  // === TACTICS ===
   {
     id: "tactics-1",
     title: "Knight Fork",
@@ -115,6 +188,58 @@ const SCENARIOS: PracticeScenario[] = [
     hint: "Put your rook on the same file as the enemy king to pin the knight.",
   },
   {
+    id: "tactics-3",
+    title: "Skewer Attack",
+    description: "Use a skewer to win the piece behind",
+    category: "Tactics",
+    difficulty: "Medium",
+    board: buildBoard([
+      { row: 0, col: 3, type: "king", color: "black" },
+      { row: 0, col: 7, type: "rook", color: "black" },
+      { row: 4, col: 3, type: "rook", color: "white" },
+      { row: 7, col: 4, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 4, col: 3 }, to: { row: 0, col: 3 } }],
+    hint: "Check the king along the rank — when it moves, you win the rook!",
+  },
+  {
+    id: "tactics-4",
+    title: "Discovered Attack",
+    description: "Move one piece to reveal an attack from another",
+    category: "Tactics",
+    difficulty: "Hard",
+    board: buildBoard([
+      { row: 0, col: 4, type: "king", color: "black" },
+      { row: 0, col: 0, type: "rook", color: "black" },
+      { row: 3, col: 4, type: "bishop", color: "white" },
+      { row: 7, col: 4, type: "rook", color: "white" },
+      { row: 7, col: 7, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 3, col: 4 }, to: { row: 2, col: 3 } }],
+    hint: "Move the bishop off the file to unleash the rook's attack on the king!",
+  },
+  {
+    id: "tactics-5",
+    title: "Double Attack",
+    description: "Attack two pieces at once with your queen",
+    category: "Tactics",
+    difficulty: "Easy",
+    board: buildBoard([
+      { row: 0, col: 4, type: "king", color: "black" },
+      { row: 0, col: 0, type: "rook", color: "black" },
+      { row: 1, col: 4, type: "pawn", color: "black" },
+      { row: 5, col: 0, type: "queen", color: "white" },
+      { row: 7, col: 4, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 5, col: 0 }, to: { row: 3, col: 2 } }],
+    hint: "Find a square for your queen that attacks both the king and the rook!",
+  },
+
+  // === ENDGAME ===
+  {
     id: "endgame-1",
     title: "Pawn Promotion",
     description: "Promote your pawn to win the game",
@@ -130,22 +255,51 @@ const SCENARIOS: PracticeScenario[] = [
     hint: "Your pawn is one step from promotion. Push it!",
   },
   {
-    id: "mate2-1",
-    title: "Smothered Mate",
-    description: "Deliver a smothered mate with your knight",
-    category: "Checkmate",
-    difficulty: "Hard",
+    id: "endgame-2",
+    title: "King & Rook vs King",
+    description: "Drive the enemy king to the edge",
+    category: "Endgame",
+    difficulty: "Medium",
     board: buildBoard([
-      { row: 0, col: 6, type: "king", color: "black" },
-      { row: 0, col: 7, type: "rook", color: "black" },
-      { row: 1, col: 5, type: "pawn", color: "black" },
-      { row: 1, col: 6, type: "pawn", color: "black" },
-      { row: 2, col: 5, type: "knight", color: "white" },
-      { row: 7, col: 4, type: "king", color: "white" },
+      { row: 2, col: 4, type: "king", color: "black" },
+      { row: 4, col: 4, type: "king", color: "white" },
+      { row: 7, col: 0, type: "rook", color: "white" },
     ]),
     playerColor: "white",
-    solution: [{ from: { row: 2, col: 5 }, to: { row: 0, col: 6 } }],
-    hint: "The king is surrounded by its own pieces. The knight can exploit this!",
+    solution: [{ from: { row: 7, col: 0 }, to: { row: 2, col: 0 } }],
+    hint: "Cut off the king by placing the rook on the same rank!",
+  },
+  {
+    id: "endgame-3",
+    title: "Opposition",
+    description: "Use king opposition to promote your pawn",
+    category: "Endgame",
+    difficulty: "Medium",
+    board: buildBoard([
+      { row: 2, col: 4, type: "king", color: "black" },
+      { row: 4, col: 4, type: "king", color: "white" },
+      { row: 5, col: 4, type: "pawn", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 5, col: 4 }, to: { row: 4, col: 4 } }],
+    hint: "Advance with your king first to maintain the opposition — then push the pawn!",
+  },
+  {
+    id: "endgame-4",
+    title: "Rook Behind Passed Pawn",
+    description: "Place your rook behind the passed pawn",
+    category: "Endgame",
+    difficulty: "Hard",
+    board: buildBoard([
+      { row: 0, col: 7, type: "king", color: "black" },
+      { row: 2, col: 0, type: "pawn", color: "white" },
+      { row: 3, col: 7, type: "rook", color: "black" },
+      { row: 7, col: 0, type: "rook", color: "white" },
+      { row: 7, col: 6, type: "king", color: "white" },
+    ]),
+    playerColor: "white",
+    solution: [{ from: { row: 2, col: 0 }, to: { row: 1, col: 0 } }],
+    hint: "Advance the pawn! Your rook already supports it from behind.",
   },
 ];
 
@@ -239,8 +393,10 @@ const Practice = () => {
 
   if (selectedScenario) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-background p-4 md:p-8 relative">
+        <div className="chess-bg" />
+        <div className="chess-bg-vignette" />
+        <div className="max-w-4xl mx-auto relative z-10">
           <button onClick={() => setSelectedScenario(null)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
             <ArrowLeft className="w-5 h-5" /> Back to Scenarios
           </button>
@@ -330,8 +486,10 @@ const Practice = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8 relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
+      <div className="max-w-4xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-8">
           <Link to="/" className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
             <ArrowLeft className="w-6 h-6 text-foreground" />

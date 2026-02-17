@@ -139,3 +139,31 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
 }
+
+/* Classic Chess Pattern Background */
+.chess-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    /* Subtle chess board pattern */
+    repeating-conic-gradient(
+      hsl(var(--background)) 0% 25%,
+      hsl(220 20% 10%) 0% 50%
+    ) 0 0 / 60px 60px,
+    /* Overlay gradient for depth */
+    radial-gradient(ellipse at 30% 20%, hsl(142 72% 50% / 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, hsl(210 85% 55% / 0.03) 0%, transparent 60%),
+    hsl(var(--background));
+  opacity: 0.5;
+}
+
+/* Vignette overlay */
+.chess-bg-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, hsl(var(--background)) 100%);
+}

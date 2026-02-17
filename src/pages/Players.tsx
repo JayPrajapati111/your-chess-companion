@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Trophy, Star, Medal, Globe, Crown } from "lucide-react";
+import { ArrowLeft, Trophy, Star, Medal, Crown } from "lucide-react";
 
 interface ChessPlayer {
   name: string;
@@ -11,14 +11,13 @@ interface ChessPlayer {
   worldChampion?: string;
   achievements: string[];
   bio: string;
-  photo: string;
   flag: string;
 }
 
 const FAMOUS_PLAYERS: ChessPlayer[] = [
   {
     name: "Magnus Carlsen",
-    country: "🇳🇴 Norway",
+    country: "Norway",
     peakRating: 2882,
     currentRating: 2831,
     title: "GM",
@@ -31,12 +30,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won World Rapid & Blitz Championships multiple times",
     ],
     bio: "Widely regarded as the greatest chess player of all time, Magnus Carlsen became a grandmaster at 13 and dominated chess for over a decade.",
-    photo: "/players/magnus-carlsen.jpg",
     flag: "🇳🇴",
   },
   {
     name: "Garry Kasparov",
-    country: "🇷🇺 Russia",
+    country: "Russia",
     peakRating: 2851,
     title: "GM",
     born: "1963",
@@ -48,12 +46,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Revolutionized chess opening theory",
     ],
     bio: "Kasparov dominated chess from 1985 to 2005 and is considered one of the greatest players ever. His rivalry with Anatoly Karpov is legendary.",
-    photo: "/players/garry-kasparov.jpg",
     flag: "🇷🇺",
   },
   {
     name: "Bobby Fischer",
-    country: "🇺🇸 USA",
+    country: "USA",
     peakRating: 2785,
     title: "GM",
     born: "1943",
@@ -65,12 +62,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Created Fischer Random Chess (Chess960)",
     ],
     bio: "Bobby Fischer's meteoric rise and 1972 World Championship match against Boris Spassky captivated the world during the Cold War era.",
-    photo: "/players/bobby-fischer.jpg",
     flag: "🇺🇸",
   },
   {
     name: "Viswanathan Anand",
-    country: "🇮🇳 India",
+    country: "India",
     peakRating: 2817,
     title: "GM",
     born: "1969",
@@ -82,12 +78,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Pioneer who inspired a generation of Indian chess players",
     ],
     bio: "Known as 'The Lightning Kid' for his rapid play, Anand is one of the most versatile champions and a beloved figure in world chess.",
-    photo: "/players/viswanathan-anand.jpg",
     flag: "🇮🇳",
   },
   {
     name: "Ding Liren",
-    country: "🇨🇳 China",
+    country: "China",
     peakRating: 2816,
     currentRating: 2734,
     title: "GM",
@@ -100,12 +95,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won Candidates Tournament 2023",
     ],
     bio: "Ding Liren made history by becoming the first Chinese player to win the World Chess Championship, defeating Ian Nepomniachtchi in 2023.",
-    photo: "/players/ding-liren.jpg",
     flag: "🇨🇳",
   },
   {
     name: "Judit Polgár",
-    country: "🇭🇺 Hungary",
+    country: "Hungary",
     peakRating: 2735,
     title: "GM",
     born: "1976",
@@ -116,12 +110,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Peak ranking #8 in the world (open category)",
     ],
     bio: "Judit Polgár broke every gender barrier in chess, competing exclusively in open tournaments and defeating nearly every World Champion of her era.",
-    photo: "/players/judit-polgar.jpg",
     flag: "🇭🇺",
   },
   {
     name: "Hikaru Nakamura",
-    country: "🇺🇸 USA",
+    country: "USA",
     peakRating: 2816,
     currentRating: 2802,
     title: "GM",
@@ -133,12 +126,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Candidates Tournament finalist 2024",
     ],
     bio: "Hikaru Nakamura is known for his exceptional speed chess and has become the most popular chess personality on the internet through streaming.",
-    photo: "/players/hikaru-nakamura.jpg",
     flag: "🇺🇸",
   },
   {
     name: "D. Gukesh",
-    country: "🇮🇳 India",
+    country: "India",
     peakRating: 2794,
     currentRating: 2783,
     title: "GM",
@@ -151,12 +143,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won gold medal at Chess Olympiad 2024",
     ],
     bio: "Dommaraju Gukesh stunned the chess world by becoming the youngest World Chess Champion ever in 2024, defeating Ding Liren.",
-    photo: "/players/gukesh.jpg",
     flag: "🇮🇳",
   },
   {
     name: "Hou Yifan",
-    country: "🇨🇳 China",
+    country: "China",
     peakRating: 2686,
     title: "GM",
     born: "1994",
@@ -167,12 +158,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Professor at Shenzhen University",
     ],
     bio: "Hou Yifan is the strongest active female chess player and one of the youngest GMs in history, known for competing in open tournaments.",
-    photo: "/players/hou-yifan.jpg",
     flag: "🇨🇳",
   },
   {
     name: "Nona Gaprindashvili",
-    country: "🇬🇪 Georgia",
+    country: "Georgia",
     peakRating: 2495,
     title: "GM",
     born: "1941",
@@ -184,12 +174,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Pioneer who broke gender barriers in chess",
     ],
     bio: "Nona Gaprindashvili made history as the first woman to earn the Grandmaster title, paving the way for future generations of female players.",
-    photo: "/players/nona-gaprindashvili.jpg",
     flag: "🇬🇪",
   },
   {
     name: "Wenjun Ju",
-    country: "🇨🇳 China",
+    country: "China",
     peakRating: 2604,
     title: "GM",
     born: "1991",
@@ -201,12 +190,11 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Dominated women's chess for half a decade",
     ],
     bio: "Ju Wenjun defended her Women's World Championship title multiple times and is one of the strongest female players in history.",
-    photo: "/players/wenjun-ju.jpg",
     flag: "🇨🇳",
   },
   {
     name: "Maia Chiburdanidze",
-    country: "🇬🇪 Georgia",
+    country: "Georgia",
     peakRating: 2560,
     title: "GM",
     born: "1961",
@@ -218,15 +206,16 @@ const FAMOUS_PLAYERS: ChessPlayer[] = [
       "Won numerous Chess Olympiad medals",
     ],
     bio: "Maia Chiburdanidze became the youngest Women's World Champion in 1978 and dominated women's chess for over a decade.",
-    photo: "/players/maia-chiburdanidze.jpg",
     flag: "🇬🇪",
   },
 ];
 
 const Players = () => {
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8 relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
+      <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-8">
           <Link to="/" className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
             <ArrowLeft className="w-6 h-6 text-foreground" />
@@ -241,21 +230,16 @@ const Players = () => {
           {FAMOUS_PLAYERS.map((player) => (
             <div
               key={player.name}
-              className="bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-all"
+              className="bg-card/90 backdrop-blur-sm rounded-2xl border border-border p-6 hover:border-primary/30 transition-all"
             >
               {/* Header */}
-              <div className="flex items-start gap-4 mb-4">
-                <img
-                  src={player.photo}
-                  alt={player.name}
-                  className="w-24 h-24 rounded-xl object-cover border-2 border-border shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{player.flag}</span>
-                    <h2 className="text-xl font-bold text-foreground truncate">{player.name}</h2>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{player.flag}</span>
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">{player.name}</h2>
+                    <p className="text-sm text-muted-foreground">{player.country} • Born {player.born}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{player.country} • Born {player.born}</p>
                 </div>
                 <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full shrink-0">
                   {player.title}

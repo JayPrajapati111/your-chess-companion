@@ -18,14 +18,16 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
       {/* Header */}
-      <header className="pt-8 pb-4 text-center">
+      <header className="pt-8 pb-4 text-center relative z-10">
         <p className="text-muted-foreground text-lg">Play, Learn, and Master the Game of Kings</p>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Side - Game Modes */}
           <div className="flex-1">
@@ -102,7 +104,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 text-center">
+      <footer className="py-8 text-center relative z-10">
         <p className="text-sm text-muted-foreground">
           Full chess rules • Castling • En Passant • Pawn Promotion
         </p>

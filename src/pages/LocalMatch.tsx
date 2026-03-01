@@ -23,7 +23,7 @@ import { PromotionDialog } from "@/components/PromotionDialog";
 import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
 import { TimeControlDialog } from "@/components/TimeControlDialog";
 import { GameEndDialog } from "@/components/GameEndDialog";
-
+import { GameAnalysis } from "@/components/GameAnalysis";
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
 const posToNotation = (pos: Position) => FILES[pos.col] + RANKS[pos.row];
@@ -43,6 +43,7 @@ const LocalMatch = () => {
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [moveNumber, setMoveNumber] = useState(1);
   const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
   const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout";
@@ -162,8 +163,20 @@ const LocalMatch = () => {
     setMoveHistory([]);
     setMoveNumber(1);
     setShowEndDialog(false);
+    setShowAnalysis(false);
     setTimeControl(null); // Show time control dialog again
   };
+
+  // Show analysis view
+  if (showAnalysis) {
+    return (
+      <GameAnalysis
+        moves={moveHistory}
+        playerLabel={{ white: "White", black: "Black" }}
+        onClose={() => setShowAnalysis(false)}
+      />
+    );
+  }
 
   const isSquareHighlighted = (row: number, col: number) => validMoves.some((m) => m.row === row && m.col === col);
   const isSquareSelected = (row: number, col: number) => selectedSquare?.row === row && selectedSquare?.col === col;
@@ -311,6 +324,7 @@ const LocalMatch = () => {
         playerLabel={{ white: "White", black: "Black" }}
         onNewGame={resetGame}
         onClose={() => setShowEndDialog(false)}
+        onAnalyze={() => { setShowEndDialog(false); setShowAnalysis(true); }}
       />
     </div>
   );

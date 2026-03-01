@@ -24,6 +24,7 @@ import { PromotionDialog } from "@/components/PromotionDialog";
 import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
 import { TimeControlDialog } from "@/components/TimeControlDialog";
 import { GameEndDialog } from "@/components/GameEndDialog";
+import { GameAnalysis } from "@/components/GameAnalysis";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -50,6 +51,7 @@ const ComputerMatch = () => {
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [moveNumber, setMoveNumber] = useState(1);
   const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const aiColor: PieceColor = playerColor === "white" ? "black" : "white";
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
@@ -206,6 +208,7 @@ const ComputerMatch = () => {
     setMoveHistory([]);
     setMoveNumber(1);
     setShowEndDialog(false);
+    setShowAnalysis(false);
     if (color) {
       setPlayerColor(color);
       setGameStarted(true);
@@ -217,6 +220,17 @@ const ComputerMatch = () => {
 
   const isSquareHighlighted = (row: number, col: number) => validMoves.some((m) => m.row === row && m.col === col);
   const isSquareSelected = (row: number, col: number) => selectedSquare?.row === row && selectedSquare?.col === col;
+
+  // Show analysis view
+  if (showAnalysis) {
+    return (
+      <GameAnalysis
+        moves={moveHistory}
+        playerLabel={{ white: playerColor === "white" ? "You" : "Computer", black: playerColor === "black" ? "You" : "Computer" }}
+        onClose={() => setShowAnalysis(false)}
+      />
+    );
+  }
 
   // Step 1: Time control selection
   if (!timeControl) {
@@ -447,6 +461,7 @@ const ComputerMatch = () => {
         playerLabel={{ white: playerColor === "white" ? "You" : "Computer", black: playerColor === "black" ? "You" : "Computer" }}
         onNewGame={() => resetGame(playerColor)}
         onClose={() => setShowEndDialog(false)}
+        onAnalyze={() => { setShowEndDialog(false); setShowAnalysis(true); }}
       />
     </div>
   );

@@ -14,6 +14,7 @@ interface GameEndDialogProps {
   playerLabel?: { white: string; black: string };
   onNewGame: () => void;
   onClose: () => void;
+  onAnalyze?: () => void;
 }
 
 export const GameEndDialog = ({
@@ -23,6 +24,7 @@ export const GameEndDialog = ({
   playerLabel = { white: "White", black: "Black" },
   onNewGame,
   onClose,
+  onAnalyze,
 }: GameEndDialogProps) => {
   if (!status || status === "checkmate" || status === "stalemate" || status === "timeout") {
     // only show when game actually ended
@@ -83,19 +85,29 @@ export const GameEndDialog = ({
           </div>
         )}
 
-        <div className="flex gap-3 justify-center pt-2">
-          <button
-            onClick={onNewGame}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity"
-          >
-            New Game
-          </button>
-          <button
-            onClick={onClose}
-            className="px-6 py-3 bg-card text-foreground border border-border rounded-lg font-semibold hover:bg-secondary transition-colors"
-          >
-            Review Board
-          </button>
+        <div className="flex flex-col gap-3 justify-center pt-2">
+          {onAnalyze && (
+            <button
+              onClick={onAnalyze}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            >
+              📊 Game Review
+            </button>
+          )}
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onNewGame}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            >
+              New Game
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 py-3 bg-card text-foreground border border-border rounded-lg font-semibold hover:bg-secondary transition-colors"
+            >
+              Review Board
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

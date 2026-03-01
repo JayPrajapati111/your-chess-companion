@@ -234,11 +234,13 @@ const Players = () => {
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{player.flag}</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center text-4xl shadow-inner border border-border">
+                    {player.flag}
+                  </div>
                   <div>
                     <h2 className="text-xl font-bold text-foreground">{player.name}</h2>
-                    <p className="text-sm text-muted-foreground">{player.country} • Born {player.born}</p>
+                    <p className="text-sm text-muted-foreground">{player.flag} {player.country} • Born {player.born}</p>
                   </div>
                 </div>
                 <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full shrink-0">

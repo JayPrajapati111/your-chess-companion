@@ -147,16 +147,17 @@
   z-index: 0;
   pointer-events: none;
   background:
-    /* Subtle chess board pattern */
+    /* Elegant chess grid */
     repeating-conic-gradient(
-      hsl(var(--background)) 0% 25%,
-      hsl(220 20% 10%) 0% 50%
-    ) 0 0 / 60px 60px,
-    /* Overlay gradient for depth */
-    radial-gradient(ellipse at 30% 20%, hsl(142 72% 50% / 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 80%, hsl(210 85% 55% / 0.03) 0%, transparent 60%),
+      hsl(220 20% 10% / 0.6) 0% 25%,
+      hsl(220 20% 14% / 0.6) 0% 50%
+    ) 0 0 / 80px 80px,
+    /* Rich gradient overlays */
+    radial-gradient(ellipse at 15% 10%, hsl(142 72% 50% / 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, hsl(210 85% 55% / 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, hsl(280 70% 50% / 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 50%, hsl(25 95% 55% / 0.03) 0%, transparent 40%),
     hsl(var(--background));
-  opacity: 0.5;
 }
 
 /* Vignette overlay */
@@ -165,5 +166,16 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 40%, hsl(var(--background)) 100%);
+  background:
+    radial-gradient(ellipse at center, transparent 30%, hsl(var(--background) / 0.7) 80%, hsl(var(--background)) 100%);
+}
+
+/* Eval bar */
+.eval-bar {
+  transition: height 0.5s ease-in-out;
+}
+
+/* Move arrow overlay */
+.move-arrow {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }

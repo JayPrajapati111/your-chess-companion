@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
-import { ArrowLeft, ArrowRight, BarChart3, Lightbulb, ThumbsUp, ThumbsDown, Star, AlertTriangle, XCircle, BookOpen, ChevronLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Lightbulb, ThumbsUp, ThumbsDown, Star, AlertTriangle, XCircle, BookOpen, ChevronLeft, Eye } from "lucide-react";
 import { MoveRecord } from "./MoveHistory";
 import { Board, PieceColor, PIECE_SYMBOLS, createInitialBoard, makeMove, Position, getValidMoves, isKingInCheck, CastlingRights, createInitialCastlingRights, updateCastlingRights } from "@/lib/chess";
 import { evaluateBoardForAnalysis, getBestMoveForAnalysis } from "@/lib/chessAnalysis";
 import { ScrollArea } from "./ui/scroll-area";
-import { Progress } from "./ui/progress";
 
 interface GameAnalysisProps {
   moves: MoveRecord[];
@@ -17,26 +16,32 @@ interface AnalyzedMove {
   evalBefore: number;
   evalAfter: number;
   quality: MoveQuality;
-  bestMove?: string;
+  bestMove?: { from: Position; to: Position };
+  bestMoveStr?: string;
   bestEval?: number;
+  commentary: string;
 }
 
 type MoveQuality = "brilliant" | "great" | "best" | "excellent" | "good" | "book" | "inaccuracy" | "mistake" | "blunder";
 
-const QUALITY_CONFIG: Record<MoveQuality, { icon: React.ReactNode; color: string; label: string }> = {
-  brilliant: { icon: <span className="text-lg">‼</span>, color: "text-cyan-400", label: "Brilliant" },
-  great: { icon: <span className="text-lg">!</span>, color: "text-blue-400", label: "Great" },
-  best: { icon: <Star className="w-4 h-4" />, color: "text-green-500", label: "Best" },
-  excellent: { icon: <ThumbsUp className="w-4 h-4" />, color: "text-green-400", label: "Excellent" },
-  good: { icon: <span className="text-sm">✓</span>, color: "text-green-300", label: "Good" },
-  book: { icon: <BookOpen className="w-4 h-4" />, color: "text-amber-400", label: "Book" },
-  inaccuracy: { icon: <AlertTriangle className="w-4 h-4" />, color: "text-yellow-500", label: "Inaccuracy" },
-  mistake: { icon: <ThumbsDown className="w-4 h-4" />, color: "text-orange-500", label: "Mistake" },
-  blunder: { icon: <XCircle className="w-4 h-4" />, color: "text-red-500", label: "Blunder" },
+const QUALITY_CONFIG: Record<MoveQuality, { icon: React.ReactNode; color: string; label: string; bgColor: string }> = {
+  brilliant: { icon: <span className="text-lg font-bold">‼</span>, color: "text-cyan-400", bgColor: "bg-cyan-500", label: "Brilliant" },
+  great: { icon: <span className="text-lg font-bold">!</span>, color: "text-blue-400", bgColor: "bg-blue-500", label: "Great" },
+  best: { icon: <Star className="w-4 h-4" />, color: "text-green-500", bgColor: "bg-green-600", label: "Best" },
+  excellent: { icon: <ThumbsUp className="w-4 h-4" />, color: "text-green-400", bgColor: "bg-green-500", label: "Excellent" },
+  good: { icon: <span className="text-sm">✓</span>, color: "text-green-300", bgColor: "bg-green-400", label: "Good" },
+  book: { icon: <BookOpen className="w-4 h-4" />, color: "text-amber-400", bgColor: "bg-amber-500", label: "Book" },
+  inaccuracy: { icon: <span className="font-bold">?!</span>, color: "text-yellow-500", bgColor: "bg-yellow-500", label: "Inaccuracy" },
+  mistake: { icon: <span className="font-bold">?</span>, color: "text-orange-500", bgColor: "bg-orange-500", label: "Mistake" },
+  blunder: { icon: <span className="font-bold">??</span>, color: "text-red-500", bgColor: "bg-red-600", label: "Blunder" },
 };
 
 const PIECE_LETTERS: Record<string, string> = {
   king: "K", queen: "Q", rook: "R", bishop: "B", knight: "N", pawn: "",
+};
+
+const PIECE_ICONS: Record<string, string> = {
+  king: "♔", queen: "♕", rook: "♖", bishop: "♗", knight: "♘", pawn: "♙",
 };
 
 function formatMoveNotation(move: MoveRecord): string {
@@ -51,16 +56,35 @@ function formatMoveNotation(move: MoveRecord): string {
   return n;
 }
 
+function getCommentary(quality: MoveQuality, move: MoveRecord, evalAfter: number): string {
+  const evalStr = evalAfter > 0 ? `+${(evalAfter / 100).toFixed(2)}` : (evalAfter / 100).toFixed(2);
+  const pieceIcon = PIECE_ICONS[move.piece] || "";
+  const notation = formatMoveNotation(move);
+  
+  switch (quality) {
+    case "brilliant": return `Incredible move! ${pieceIcon}${notation} creates a stunning tactical opportunity.`;
+    case "great": return `Nice ${move.piece === "knight" ? "fork" : "move"}! You'll be winning material.`;
+    case "best": return `${notation} is best`;
+    case "excellent": return `Strong play. This keeps the pressure on your opponent.`;
+    case "good": return `A solid move that maintains your position.`;
+    case "book": return `A fundamental move that leads to several exciting openings.`;
+    case "inaccuracy": return `Their central pawn is now blocked. A slightly better option was available.`;
+    case "mistake": return `This gives away some advantage. There was a stronger continuation.`;
+    case "blunder": return `A serious mistake that changes the evaluation significantly.`;
+    default: return "";
+  }
+}
+
 const FILES = "abcdefgh";
 const parseNotation = (s: string): Position => ({ row: 8 - parseInt(s[1]), col: FILES.indexOf(s[0]) });
 
 export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps) => {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
+  const [showBestMove, setShowBestMove] = useState(false);
+  const [reviewStarted, setReviewStarted] = useState(false);
 
-  // Analyze all moves
   const analysis = useMemo(() => {
     if (moves.length === 0) return [];
-
     const results: AnalyzedMove[] = [];
     let board = createInitialBoard();
     let rights = createInitialCastlingRights();
@@ -69,18 +93,14 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
       const move = moves[i];
       const from = parseNotation(move.from);
       const to = parseNotation(move.to);
-
       const evalBefore = evaluateBoardForAnalysis(board, "white");
-
-      // Get best move for the moving side
       const best = getBestMoveForAnalysis(board, move.color, rights);
       const newRights = updateCastlingRights(rights, board, from, to);
       const newBoard = makeMove(board, from, to, move.isPromotion);
       const evalAfter = evaluateBoardForAnalysis(newBoard, "white");
 
-      // Calculate quality based on eval change
       const perspective = move.color === "white" ? 1 : -1;
-      const evalDrop = (evalBefore - evalAfter) * perspective; // positive = player lost advantage
+      const evalDrop = (evalBefore - evalAfter) * perspective;
 
       let quality: MoveQuality;
       if (i < 4) {
@@ -101,9 +121,12 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
         quality = "blunder";
       }
 
+      let bestMovePos: { from: Position; to: Position } | undefined;
       let bestMoveStr: string | undefined;
       if (best && quality !== "best" && quality !== "book") {
-        bestMoveStr = `${PIECE_LETTERS[board[best.from.row][best.from.col]?.type || "pawn"]}${FILES[best.to.col]}${8 - best.to.row}`;
+        bestMovePos = { from: best.from, to: best.to };
+        const piece = board[best.from.row][best.from.col];
+        bestMoveStr = `${PIECE_LETTERS[piece?.type || "pawn"]}${FILES[best.to.col]}${8 - best.to.row}`;
       }
 
       results.push({
@@ -111,8 +134,10 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
         evalBefore,
         evalAfter,
         quality,
-        bestMove: bestMoveStr,
+        bestMove: bestMovePos,
+        bestMoveStr,
         bestEval: best?.eval,
+        commentary: getCommentary(quality, move, evalAfter),
       });
 
       board = newBoard;
@@ -121,7 +146,6 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
     return results;
   }, [moves]);
 
-  // Compute board at current move index
   const currentBoard = useMemo(() => {
     let board = createInitialBoard();
     for (let i = 0; i <= currentMoveIndex && i < moves.length; i++) {
@@ -131,7 +155,6 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
     return board;
   }, [currentMoveIndex, moves]);
 
-  // Compute accuracy
   const computeAccuracy = (color: PieceColor) => {
     const colorMoves = analysis.filter(a => a.move.color === color);
     if (colorMoves.length === 0) return 0;
@@ -144,190 +167,298 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
 
   const whiteAccuracy = computeAccuracy("white");
   const blackAccuracy = computeAccuracy("black");
-
   const countQuality = (color: PieceColor, q: MoveQuality) => analysis.filter(a => a.move.color === color && a.quality === q).length;
-
   const qualityTypes: MoveQuality[] = ["brilliant", "great", "best", "excellent", "good", "book", "inaccuracy", "mistake", "blunder"];
-
   const currentAnalysis = currentMoveIndex >= 0 ? analysis[currentMoveIndex] : null;
 
+  // Eval bar calculation - normalize to 0-100 range for display
+  const currentEval = currentAnalysis ? currentAnalysis.evalAfter : 0;
+  const evalCentipawns = currentEval;
+  const whiteBarPercent = Math.min(95, Math.max(5, 50 + (evalCentipawns / 40)));
+  const evalDisplay = evalCentipawns >= 0 ? `+${(evalCentipawns / 100).toFixed(2)}` : (evalCentipawns / 100).toFixed(2);
+
+  const goNext = () => {
+    setCurrentMoveIndex(i => Math.min(moves.length - 1, i + 1));
+    setShowBestMove(false);
+  };
+  const goPrev = () => {
+    setCurrentMoveIndex(i => Math.max(-1, i - 1));
+    setShowBestMove(false);
+  };
+
   const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
-  const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+  const filesArr = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-  return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={onClose} className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
-            <ChevronLeft className="w-6 h-6 text-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Game Review</h1>
-          </div>
-        </div>
-
-        {/* Accuracy Summary */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-card rounded-xl border border-border p-4">
-            <p className="text-sm text-muted-foreground mb-1">{playerLabel.white} (White)</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{whiteAccuracy}</span>
-              <span className="text-sm text-muted-foreground">accuracy</span>
+  // Summary screen (before review starts)
+  if (!reviewStarted) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8 relative">
+        <div className="chess-bg" />
+        <div className="chess-bg-vignette" />
+        <div className="max-w-lg mx-auto relative z-10">
+          <div className="flex items-center gap-4 mb-6">
+            <button onClick={onClose} className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
+              <ChevronLeft className="w-6 h-6 text-foreground" />
+            </button>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-6 h-6 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground">Game Review</h1>
             </div>
-            <Progress value={whiteAccuracy} className="h-2 mt-2" />
           </div>
-          <div className="bg-card rounded-xl border border-border p-4">
-            <p className="text-sm text-muted-foreground mb-1">{playerLabel.black} (Black)</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{blackAccuracy}</span>
-              <span className="text-sm text-muted-foreground">accuracy</span>
-            </div>
-            <Progress value={blackAccuracy} className="h-2 mt-2" />
-          </div>
-        </div>
 
-        {/* Quality breakdown table */}
-        <div className="bg-card rounded-xl border border-border p-4 mb-6">
-          <div className="grid grid-cols-4 gap-2 text-sm">
-            <div className="font-semibold text-muted-foreground">Move Type</div>
-            <div className="text-center font-semibold text-muted-foreground">Icon</div>
-            <div className="text-center font-semibold text-muted-foreground">{playerLabel.white}</div>
-            <div className="text-center font-semibold text-muted-foreground">{playerLabel.black}</div>
+          {/* Coach message */}
+          <div className="flex items-start gap-3 mb-6">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-3xl shrink-0">
+              🧑‍🏫
+            </div>
+            <div className="bg-foreground text-background rounded-2xl rounded-tl-none px-5 py-3 text-sm font-medium">
+              {whiteAccuracy > blackAccuracy
+                ? `Way to go! ${playerLabel.white} took the advantage when they saw their chance.`
+                : blackAccuracy > whiteAccuracy
+                  ? `Good game! ${playerLabel.black} played more accurately overall.`
+                  : `A closely matched game! Both sides played well.`
+              }
+            </div>
+          </div>
+
+          {/* Eval chart placeholder */}
+          <div className="bg-card rounded-xl border border-border p-4 mb-6 h-16 flex items-end gap-px overflow-hidden">
+            {analysis.map((a, i) => {
+              const h = Math.min(100, Math.max(5, 50 + a.evalAfter / 40));
+              return (
+                <div key={i} className="flex-1 bg-foreground/20 rounded-t-sm relative" style={{ height: `${h}%` }}>
+                  <div className="absolute inset-0 rounded-t-sm" style={{ background: a.evalAfter >= 0 ? 'hsl(0 0% 90%)' : 'hsl(220 10% 25%)' }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Players & Accuracy */}
+          <div className="grid grid-cols-3 gap-4 mb-6 items-center">
+            <div className="text-center">
+              <p className="text-sm font-bold text-foreground">{playerLabel.white}</p>
+              <div className="text-4xl mt-1">♔</div>
+            </div>
+            <div className="text-center text-xs text-muted-foreground font-semibold">Players</div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-foreground">{playerLabel.black}</p>
+              <div className="text-4xl mt-1">♚</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-6 items-center">
+            <div className="text-center">
+              <div className="inline-block px-5 py-2 rounded-lg bg-foreground text-background text-2xl font-bold">{whiteAccuracy}</div>
+            </div>
+            <div className="text-center text-xs text-muted-foreground font-semibold">Accuracy</div>
+            <div className="text-center">
+              <div className="inline-block px-5 py-2 rounded-lg bg-muted text-foreground text-2xl font-bold">{blackAccuracy}</div>
+            </div>
+          </div>
+
+          <div className="border-t border-border my-4" />
+
+          {/* Quality breakdown table */}
+          <div className="space-y-2 mb-6">
             {qualityTypes.map(q => {
               const cfg = QUALITY_CONFIG[q];
               const wc = countQuality("white", q);
               const bc = countQuality("black", q);
               if (wc === 0 && bc === 0) return null;
               return (
-                <div key={q} className="contents">
-                  <div className={`font-semibold ${cfg.color}`}>{cfg.label}</div>
-                  <div className={`text-center ${cfg.color}`}>{cfg.icon}</div>
+                <div key={q} className="grid grid-cols-3 items-center text-sm py-1">
                   <div className={`text-center font-bold ${cfg.color}`}>{wc}</div>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className={`font-semibold ${cfg.color}`}>{cfg.label}</span>
+                    <span className={`w-6 h-6 rounded-full ${cfg.bgColor} flex items-center justify-center text-white text-xs`}>
+                      {cfg.icon}
+                    </span>
+                  </div>
                   <div className={`text-center font-bold ${cfg.color}`}>{bc}</div>
                 </div>
               );
             })}
           </div>
+
+          {/* Start Review Button */}
+          <button
+            onClick={() => { setReviewStarted(true); setCurrentMoveIndex(0); }}
+            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-opacity"
+          >
+            Start Review
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Review mode - chess.com style
+  return (
+    <div className="min-h-screen bg-background flex flex-col relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
+      <div className="relative z-10 flex flex-col h-screen">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+          <button onClick={() => setReviewStarted(false)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors">
+            <ChevronLeft className="w-5 h-5 text-foreground" />
+          </button>
+          <h1 className="text-lg font-bold text-foreground flex-1 text-center">Game Review</h1>
+          <div className="w-8" />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Board replay */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <div className="flex ml-8 mb-1">
-                {files.map(f => <div key={f} className="w-10 md:w-12 text-center text-xs text-muted-foreground">{f}</div>)}
-              </div>
-              <div className="flex">
-                <div className="flex flex-col mr-1">
-                  {ranks.map(r => <div key={r} className="h-10 md:h-12 flex items-center justify-center w-6 text-xs text-muted-foreground">{r}</div>)}
-                </div>
-                <div className="grid grid-cols-8 rounded-lg overflow-hidden shadow-xl border-2 border-secondary">
-                  {currentBoard.map((row, ri) =>
-                    row.map((piece, ci) => {
-                      const isLight = (ri + ci) % 2 === 0;
-                      const isFromSquare = currentAnalysis && parseNotation(currentAnalysis.move.from).row === ri && parseNotation(currentAnalysis.move.from).col === ci;
-                      const isToSquare = currentAnalysis && parseNotation(currentAnalysis.move.to).row === ri && parseNotation(currentAnalysis.move.to).col === ci;
-                      return (
-                        <div
-                          key={`${ri}-${ci}`}
-                          className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center relative
-                            ${isLight ? "chess-square-light" : "chess-square-dark"}
-                            ${isFromSquare ? "ring-2 ring-inset ring-yellow-400/60" : ""}
-                            ${isToSquare ? "ring-2 ring-inset ring-primary/60" : ""}
-                          `}
-                        >
-                          {piece && (
-                            <span className={`text-2xl md:text-3xl select-none ${piece.color === "white" ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]" : "text-gray-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"}`}
-                              style={{ WebkitTextStroke: piece.color === "white" ? "1px #333" : "none" }}
-                            >
-                              {PIECE_SYMBOLS[piece.color][piece.type]}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+        {/* Coach commentary */}
+        {currentAnalysis && (
+          <div className="flex items-start gap-3 px-4 py-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-2xl shrink-0">
+              🧑‍🏫
             </div>
-
-            {/* Move navigation */}
-            <div className="flex items-center gap-2">
-              <button onClick={() => setCurrentMoveIndex(-1)} className="p-2 bg-card rounded-lg border border-border hover:bg-secondary" disabled={currentMoveIndex < 0}>
-                <ArrowLeft className="w-4 h-4" /><ArrowLeft className="w-4 h-4 -ml-3" />
-              </button>
-              <button onClick={() => setCurrentMoveIndex(i => Math.max(-1, i - 1))} className="p-2 bg-card rounded-lg border border-border hover:bg-secondary" disabled={currentMoveIndex < 0}>
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-muted-foreground px-2">
-                {currentMoveIndex < 0 ? "Start" : `Move ${currentMoveIndex + 1}/${moves.length}`}
-              </span>
-              <button onClick={() => setCurrentMoveIndex(i => Math.min(moves.length - 1, i + 1))} className="p-2 bg-card rounded-lg border border-border hover:bg-secondary" disabled={currentMoveIndex >= moves.length - 1}>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button onClick={() => setCurrentMoveIndex(moves.length - 1)} className="p-2 bg-card rounded-lg border border-border hover:bg-secondary" disabled={currentMoveIndex >= moves.length - 1}>
-                <ArrowRight className="w-4 h-4" /><ArrowRight className="w-4 h-4 -ml-3" />
-              </button>
-            </div>
-
-            {/* Current move feedback */}
-            {currentAnalysis && (
-              <div className="bg-card rounded-xl border border-border p-4 w-full max-w-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={QUALITY_CONFIG[currentAnalysis.quality].color}>
+            <div className="bg-foreground text-background rounded-2xl rounded-tl-none px-4 py-3 text-sm flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className={`w-5 h-5 rounded-full ${QUALITY_CONFIG[currentAnalysis.quality].bgColor} flex items-center justify-center text-white text-xs`}>
                     {QUALITY_CONFIG[currentAnalysis.quality].icon}
                   </span>
-                  <span className={`font-bold ${QUALITY_CONFIG[currentAnalysis.quality].color}`}>
-                    {formatMoveNotation(currentAnalysis.move)} is {QUALITY_CONFIG[currentAnalysis.quality].label.toLowerCase()}
-                  </span>
+                  <span className="font-bold">{PIECE_ICONS[currentAnalysis.move.piece]}{formatMoveNotation(currentAnalysis.move)} is {currentAnalysis.quality === "best" ? "best" : (["brilliant","great","excellent","good"].includes(currentAnalysis.quality) ? `a ${currentAnalysis.quality} move` : `an ${currentAnalysis.quality}`)}</span>
                 </div>
-                {currentAnalysis.bestMove && currentAnalysis.quality !== "best" && currentAnalysis.quality !== "book" && (
-                  <div className="bg-secondary/50 rounded-lg p-3 flex items-start gap-2 mt-2">
-                    <Lightbulb className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-primary">Better move</p>
-                      <p className="text-sm text-foreground font-mono">{currentAnalysis.bestMove}</p>
-                    </div>
-                  </div>
+                <span className="text-xs bg-background/20 px-2 py-0.5 rounded font-mono">{evalDisplay}</span>
+              </div>
+              <p className="text-xs opacity-80">{currentAnalysis.commentary}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Board + Eval bar */}
+        <div className="flex-1 flex items-center justify-center px-2 py-2">
+          <div className="flex gap-1">
+            {/* Eval bar */}
+            <div className="w-6 rounded-lg overflow-hidden border border-border flex flex-col" style={{ height: "min(80vw, 384px)" }}>
+              <div className="bg-gray-800 transition-all duration-500 ease-in-out" style={{ height: `${100 - whiteBarPercent}%` }} />
+              <div className="bg-gray-100 transition-all duration-500 ease-in-out flex-1" />
+            </div>
+
+            {/* Board */}
+            <div className="relative">
+              <div className="grid grid-cols-8 rounded-lg overflow-hidden shadow-xl" style={{ width: "min(80vw, 384px)", height: "min(80vw, 384px)" }}>
+                {currentBoard.map((row, ri) =>
+                  row.map((piece, ci) => {
+                    const isLight = (ri + ci) % 2 === 0;
+                    const isFromSquare = currentAnalysis && parseNotation(currentAnalysis.move.from).row === ri && parseNotation(currentAnalysis.move.from).col === ci;
+                    const isToSquare = currentAnalysis && parseNotation(currentAnalysis.move.to).row === ri && parseNotation(currentAnalysis.move.to).col === ci;
+                    const isBestFrom = showBestMove && currentAnalysis?.bestMove && currentAnalysis.bestMove.from.row === ri && currentAnalysis.bestMove.from.col === ci;
+                    const isBestTo = showBestMove && currentAnalysis?.bestMove && currentAnalysis.bestMove.to.row === ri && currentAnalysis.bestMove.to.col === ci;
+                    
+                    return (
+                      <div
+                        key={`${ri}-${ci}`}
+                        className={`relative flex items-center justify-center
+                          ${isLight ? "chess-square-light" : "chess-square-dark"}
+                          ${isToSquare ? "!bg-yellow-400/50" : ""}
+                          ${isFromSquare ? "!bg-yellow-400/30" : ""}
+                          ${isBestTo ? "!bg-green-400/50" : ""}
+                          ${isBestFrom ? "!bg-green-400/30" : ""}
+                        `}
+                        style={{ width: "calc(min(80vw, 384px) / 8)", height: "calc(min(80vw, 384px) / 8)" }}
+                      >
+                        {/* Rank/file labels */}
+                        {ci === 0 && <span className="absolute top-0.5 left-0.5 text-[10px] font-bold opacity-50">{ranks[ri]}</span>}
+                        {ri === 7 && <span className="absolute bottom-0.5 right-0.5 text-[10px] font-bold opacity-50">{filesArr[ci]}</span>}
+                        
+                        {piece && (
+                          <span className={`text-2xl md:text-3xl select-none ${piece.color === "white" ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]" : "text-gray-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"}`}
+                            style={{ WebkitTextStroke: piece.color === "white" ? "1px #333" : "none" }}
+                          >
+                            {PIECE_SYMBOLS[piece.color][piece.type]}
+                          </span>
+                        )}
+
+                        {/* Quality badge on the move target */}
+                        {isToSquare && currentAnalysis && (
+                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${QUALITY_CONFIG[currentAnalysis.quality].bgColor} flex items-center justify-center text-white text-[10px] z-10 shadow-lg`}>
+                            {QUALITY_CONFIG[currentAnalysis.quality].icon}
+                          </div>
+                        )}
+
+                        {/* Best move arrow indicator */}
+                        {isBestTo && (
+                          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-[10px] z-10 shadow-lg">
+                            <Star className="w-3 h-3" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
-            )}
+            </div>
           </div>
+        </div>
 
-          {/* Move list with quality indicators */}
-          <div className="bg-card rounded-xl border border-border p-3 w-full lg:w-64">
-            <h3 className="text-sm font-bold text-foreground mb-2">Moves</h3>
-            <ScrollArea className="h-80">
-              <div className="space-y-0.5 pr-2">
-                {analysis.map((a, i) => {
-                  const cfg = QUALITY_CONFIG[a.quality];
-                  const isSelected = i === currentMoveIndex;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentMoveIndex(i)}
-                      className={`w-full flex items-center gap-2 text-xs font-mono px-2 py-1 rounded transition-colors text-left ${
-                        isSelected ? "bg-primary/20 border border-primary/30" : "hover:bg-secondary/50"
-                      }`}
-                    >
-                      {a.move.color === "white" && (
-                        <span className="text-muted-foreground w-6 text-right shrink-0">{a.move.moveNumber}.</span>
-                      )}
-                      {a.move.color === "black" && (
-                        <span className="w-6 shrink-0" />
-                      )}
-                      <span className={`${cfg.color}`}>{cfg.icon}</span>
-                      <span className="text-foreground font-semibold">{formatMoveNotation(a.move)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </div>
+        {/* Bottom move strip */}
+        <div className="border-t border-border px-2 py-2">
+          <ScrollArea className="w-full">
+            <div className="flex items-center gap-1 px-2 py-1 min-w-max">
+              <button onClick={goPrev} disabled={currentMoveIndex < 0} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              {analysis.map((a, i) => {
+                const cfg = QUALITY_CONFIG[a.quality];
+                const isSelected = i === currentMoveIndex;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => { setCurrentMoveIndex(i); setShowBestMove(false); }}
+                    className={`flex items-center gap-1 text-xs font-mono px-1.5 py-1 rounded transition-colors shrink-0 ${
+                      isSelected ? "bg-primary/20 border border-primary/30" : "hover:bg-secondary/50"
+                    }`}
+                  >
+                    {a.move.color === "white" && <span className="text-muted-foreground">{a.move.moveNumber}.</span>}
+                    <span className={`w-4 h-4 rounded-full ${cfg.bgColor} flex items-center justify-center text-white text-[8px]`}>
+                      {cfg.icon}
+                    </span>
+                    <span className="text-foreground font-semibold">{formatMoveNotation(a.move)}</span>
+                  </button>
+                );
+              })}
+              <button onClick={goNext} disabled={currentMoveIndex >= moves.length - 1} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30">
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-border">
+          {currentAnalysis?.bestMove && currentAnalysis.quality !== "best" && currentAnalysis.quality !== "book" && (
+            <button
+              onClick={() => setShowBestMove(!showBestMove)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                showBestMove ? "bg-green-600 text-white" : "bg-card border border-border text-foreground hover:bg-secondary"
+              }`}
+            >
+              <Eye className="w-4 h-4" /> Best
+            </button>
+          )}
+          <button
+            onClick={() => { setCurrentMoveIndex(-1); setShowBestMove(false); startScenario(); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-card border border-border text-foreground hover:bg-secondary transition-colors"
+          >
+            ↺ Retry
+          </button>
+          <button
+            onClick={goNext}
+            disabled={currentMoveIndex >= moves.length - 1}
+            className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
   );
+
+  function startScenario() {
+    setCurrentMoveIndex(0);
+    setShowBestMove(false);
+  }
 };

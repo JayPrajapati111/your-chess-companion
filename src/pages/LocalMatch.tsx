@@ -24,9 +24,20 @@ import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
 import { TimeControlDialog } from "@/components/TimeControlDialog";
 import { GameEndDialog } from "@/components/GameEndDialog";
 import { GameAnalysis } from "@/components/GameAnalysis";
+
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
 const posToNotation = (pos: Position) => FILES[pos.col] + RANKS[pos.row];
+
+const boardToString = (board: Board, turn: PieceColor): string => {
+  let s = turn;
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      s += p ? `${p.color[0]}${p.type[0]}` : "--";
+    }
+  return s;
+};
 
 const LocalMatch = () => {
   const [board, setBoard] = useState<Board>(createInitialBoard);
@@ -34,7 +45,7 @@ const LocalMatch = () => {
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [currentTurn, setCurrentTurn] = useState<PieceColor>("white");
   const [capturedPieces, setCapturedPieces] = useState<{ white: string[]; black: string[] }>({ white: [], black: [] });
-  const [gameStatus, setGameStatus] = useState<"playing" | "checkmate" | "stalemate" | "check" | "timeout">("playing");
+  const [gameStatus, setGameStatus] = useState<"playing" | "checkmate" | "stalemate" | "check" | "timeout" | "repetition" | "fifty-move">("playing");
   const [winner, setWinner] = useState<PieceColor | null>(null);
   const [timeControl, setTimeControl] = useState<TimeControl | null>(null);
   const [gameKey, setGameKey] = useState(0);
@@ -44,9 +55,15 @@ const LocalMatch = () => {
   const [moveNumber, setMoveNumber] = useState(1);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [positionHistory, setPositionHistory] = useState<Map<string, number>>(() => {
+    const m = new Map<string, number>();
+    m.set(boardToString(createInitialBoard(), "white"), 1);
+    return m;
+  });
+  const [halfMoveClock, setHalfMoveClock] = useState(0);
 
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
-  const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout";
+  const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout" || gameStatus === "repetition" || gameStatus === "fifty-move";
 
   const handleTimeOut = useCallback((loser: PieceColor) => {
     setGameStatus("timeout");
@@ -88,6 +105,16 @@ const LocalMatch = () => {
     setMoveHistory(prev => [...prev, record]);
     if (currentTurn === "black") setMoveNumber(n => n + 1);
 
+    // 50-move rule: reset on capture or pawn move
+    const newHalfMove = (capturedPiece || movingPiece?.type === "pawn") ? 0 : halfMoveClock + 1;
+    setHalfMoveClock(newHalfMove);
+
+    // Threefold repetition
+    const posKey = boardToString(newBoard, nextTurn);
+    const newPosHistory = new Map(positionHistory);
+    newPosHistory.set(posKey, (newPosHistory.get(posKey) || 0) + 1);
+    setPositionHistory(newPosHistory);
+
     setBoard(newBoard);
     setCastlingRights(newRights);
     setSelectedSquare(null);
@@ -101,20 +128,24 @@ const LocalMatch = () => {
     } else if (isStalemate(newBoard, nextTurn, newRights)) {
       setGameStatus("stalemate");
       setShowEndDialog(true);
+    } else if ((newPosHistory.get(posKey) || 0) >= 3) {
+      setGameStatus("repetition");
+      setShowEndDialog(true);
+    } else if (newHalfMove >= 100) {
+      setGameStatus("fifty-move");
+      setShowEndDialog(true);
     } else if (isCheck) {
       setGameStatus("check");
     } else {
       setGameStatus("playing");
     }
-  }, [board, castlingRights, currentTurn, moveNumber]);
+  }, [board, castlingRights, currentTurn, moveNumber, halfMoveClock, positionHistory]);
 
   const handleSquareClick = useCallback(
     (row: number, col: number) => {
       if (isGameOver) return;
       if (pendingPromotion) return;
-
       const clickedPiece = board[row][col];
-
       if (clickedPiece && clickedPiece.color === currentTurn) {
         setSelectedSquare({ row, col });
         const moves = getValidMoves(board, { row, col }, currentTurn, castlingRights);
@@ -125,7 +156,6 @@ const LocalMatch = () => {
         setValidMoves(legalMoves);
         return;
       }
-
       if (selectedSquare) {
         const isValidMove = validMoves.some((m) => m.row === row && m.col === col);
         if (isValidMove) {
@@ -164,10 +194,13 @@ const LocalMatch = () => {
     setMoveNumber(1);
     setShowEndDialog(false);
     setShowAnalysis(false);
-    setTimeControl(null); // Show time control dialog again
+    setTimeControl(null);
+    setHalfMoveClock(0);
+    const m = new Map<string, number>();
+    m.set(boardToString(createInitialBoard(), "white"), 1);
+    setPositionHistory(m);
   };
 
-  // Show analysis view
   if (showAnalysis) {
     return (
       <GameAnalysis
@@ -181,12 +214,13 @@ const LocalMatch = () => {
   const isSquareHighlighted = (row: number, col: number) => validMoves.some((m) => m.row === row && m.col === col);
   const isSquareSelected = (row: number, col: number) => selectedSquare?.row === row && selectedSquare?.col === col;
 
-  // Show time control selection first
   if (!timeControl) {
     return (
       <>
-        <div className="min-h-screen bg-background p-4 md:p-8">
-          <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-background p-4 md:p-8 relative">
+          <div className="chess-bg" />
+          <div className="chess-bg-vignette" />
+          <div className="max-w-6xl mx-auto relative z-10">
             <div className="flex items-center gap-4 mb-8">
               <Link to="/" className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
                 <ArrowLeft className="w-6 h-6 text-foreground" />
@@ -204,8 +238,10 @@ const LocalMatch = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8 relative">
+      <div className="chess-bg" />
+      <div className="chess-bg-vignette" />
+      <div className="max-w-6xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-8">
           <Link to="/" className="p-2 rounded-lg bg-card hover:bg-secondary transition-colors">
             <ArrowLeft className="w-6 h-6 text-foreground" />
@@ -219,7 +255,6 @@ const LocalMatch = () => {
         <div className="flex justify-center">
           <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
             <div className="flex flex-col items-center gap-4">
-              {/* Game Status */}
               <div className="flex items-center gap-4">
                 <div className={`px-4 py-2 rounded-lg font-semibold ${
                   currentTurn === "white" ? "bg-foreground text-background" : "bg-card text-foreground border border-border"
@@ -229,13 +264,11 @@ const LocalMatch = () => {
                 {gameStatus === "check" && <span className="text-destructive font-bold animate-pulse">CHECK!</span>}
               </div>
 
-              {/* Captured Pieces - Black */}
               <div className="flex items-center gap-2 h-8">
                 <span className="text-xs text-muted-foreground">Black captured:</span>
                 <div className="flex gap-1 text-2xl">{capturedPieces.black.map((p, i) => <span key={i} className="drop-shadow-sm">{p}</span>)}</div>
               </div>
 
-              {/* Board */}
               <div className="relative">
                 <div className="flex ml-8 mb-1">
                   {FILES.map((f) => <div key={f} className="w-12 md:w-16 text-center text-xs text-muted-foreground">{f}</div>)}
@@ -287,7 +320,6 @@ const LocalMatch = () => {
                 </div>
               </div>
 
-              {/* Captured Pieces - White */}
               <div className="flex items-center gap-2 h-8">
                 <span className="text-xs text-muted-foreground">White captured:</span>
                 <div className="flex gap-1 text-2xl">{capturedPieces.white.map((p, i) => <span key={i}>{p}</span>)}</div>
@@ -298,7 +330,6 @@ const LocalMatch = () => {
               </button>
             </div>
 
-            {/* Move History + Timer */}
             <div className="order-last">
               <MoveHistory moves={moveHistory} />
               {timeControl.initialTime > 0 && (
@@ -311,7 +342,7 @@ const LocalMatch = () => {
         </div>
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>Full chess rules • Castling • En Passant • Pawn Promotion</p>
+          <p>Full chess rules • Castling • Pawn Promotion • Threefold Repetition • 50-Move Rule</p>
         </div>
       </div>
 
@@ -319,7 +350,7 @@ const LocalMatch = () => {
 
       <GameEndDialog
         open={showEndDialog}
-        status={isGameOver ? gameStatus as "checkmate" | "stalemate" | "timeout" : null}
+        status={isGameOver ? gameStatus as any : null}
         winner={winner}
         playerLabel={{ white: "White", black: "Black" }}
         onNewGame={resetGame}

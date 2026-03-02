@@ -9,7 +9,7 @@ import {
 
 interface GameEndDialogProps {
   open: boolean;
-  status: "checkmate" | "stalemate" | "timeout" | null;
+  status: "checkmate" | "stalemate" | "timeout" | "repetition" | "fifty-move" | null;
   winner: PieceColor | null;
   playerLabel?: { white: string; black: string };
   onNewGame: () => void;
@@ -26,11 +26,7 @@ export const GameEndDialog = ({
   onClose,
   onAnalyze,
 }: GameEndDialogProps) => {
-  if (!status || status === "checkmate" || status === "stalemate" || status === "timeout") {
-    // only show when game actually ended
-  }
-
-  const isDraw = status === "stalemate";
+  const isDraw = status === "stalemate" || status === "repetition" || status === "fifty-move";
   const winnerName = winner ? playerLabel[winner] : null;
   const loserName = winner ? playerLabel[winner === "white" ? "black" : "white"] : null;
 
@@ -41,13 +37,17 @@ export const GameEndDialog = ({
   };
 
   const getTitle = () => {
-    if (isDraw) return "Draw by Stalemate!";
+    if (status === "repetition") return "Draw by Repetition!";
+    if (status === "fifty-move") return "Draw by 50-Move Rule!";
+    if (status === "stalemate") return "Draw by Stalemate!";
     if (status === "timeout") return "Time's Up!";
     return "Checkmate!";
   };
 
   const getDescription = () => {
-    if (isDraw) return "Neither player wins — it's a draw!";
+    if (status === "repetition") return "The same position occurred three times — it's a draw!";
+    if (status === "fifty-move") return "50 moves without a capture or pawn move — it's a draw!";
+    if (status === "stalemate") return "Neither player wins — it's a draw!";
     if (status === "timeout") return `${loserName} ran out of time.`;
     return `${loserName} has been checkmated.`;
   };

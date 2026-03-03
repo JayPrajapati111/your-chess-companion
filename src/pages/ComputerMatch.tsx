@@ -2,21 +2,9 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import {
-  Board,
-  Position,
-  PieceColor,
-  PieceType,
-  PIECE_SYMBOLS,
-  CastlingRights,
-  createInitialBoard,
-  createInitialCastlingRights,
-  getValidMoves,
-  makeMove,
-  updateCastlingRights,
-  isKingInCheck,
-  isCheckmate,
-  isStalemate,
-  isPromotionMove,
+  Board, Position, PieceColor, PieceType, PIECE_SYMBOLS, CastlingRights,
+  createInitialBoard, createInitialCastlingRights, getValidMoves, makeMove,
+  updateCastlingRights, isKingInCheck, isCheckmate, isStalemate, isPromotionMove,
 } from "@/lib/chess";
 import { Difficulty, getAIMove } from "@/lib/chessAI";
 import { ChessTimer, TimeControl } from "@/components/ChessTimer";
@@ -25,6 +13,8 @@ import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
 import { TimeControlDialog } from "@/components/TimeControlDialog";
 import { GameEndDialog } from "@/components/GameEndDialog";
 import { GameAnalysis } from "@/components/GameAnalysis";
+import { useProfile } from "@/hooks/useProfile";
+import { getNewRating, AI_RATINGS } from "@/lib/elo";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -67,6 +57,8 @@ const ComputerMatch = () => {
     return m;
   });
   const [halfMoveClock, setHalfMoveClock] = useState(0);
+  const { profile, updateProfile } = useProfile();
+  const [ratingUpdated, setRatingUpdated] = useState(false);
 
   const aiColor: PieceColor = playerColor === "white" ? "black" : "white";
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
@@ -117,11 +109,9 @@ const ComputerMatch = () => {
     setMoveHistory(prev => [...prev, record]);
     if (color === "black") setMoveNumber(n => n + 1);
 
-    // 50-move rule
     const newHalfMove = (capturedPiece || movingPiece?.type === "pawn") ? 0 : halfMoveClock + 1;
     setHalfMoveClock(newHalfMove);
 
-    // Threefold repetition
     const posKey = boardToString(newBoard, nextColor);
     const newPosHistory = new Map(positionHistory);
     newPosHistory.set(posKey, (newPosHistory.get(posKey) || 0) + 1);
@@ -152,6 +142,29 @@ const ComputerMatch = () => {
 
     return { newBoard, newRights };
   }, [moveNumber, halfMoveClock, positionHistory]);
+
+  // Update ELO on game end
+  if (isGameOver && !ratingUpdated) {
+    setRatingUpdated(true);
+    const aiRating = AI_RATINGS[difficulty] || 1000;
+    const isDraw = gameStatus === "stalemate" || gameStatus === "repetition" || gameStatus === "fifty-move";
+    if (isDraw) {
+      updateProfile({
+        draws: profile.draws + 1,
+        game_rating: getNewRating(profile.game_rating, aiRating, "draw"),
+      });
+    } else if (winner === playerColor) {
+      updateProfile({
+        wins: profile.wins + 1,
+        game_rating: getNewRating(profile.game_rating, aiRating, "win"),
+      });
+    } else {
+      updateProfile({
+        losses: profile.losses + 1,
+        game_rating: getNewRating(profile.game_rating, aiRating, "loss"),
+      });
+    }
+  }
 
   useEffect(() => {
     if (currentTurn !== aiColor || !isGameActive || pendingPromotion) return;
@@ -233,6 +246,7 @@ const ComputerMatch = () => {
     setShowEndDialog(false);
     setShowAnalysis(false);
     setHalfMoveClock(0);
+    setRatingUpdated(false);
     const m = new Map<string, number>();
     m.set(boardToString(createInitialBoard(), "white"), 1);
     setPositionHistory(m);
@@ -312,7 +326,11 @@ const ComputerMatch = () => {
                 }`}>{d}</button>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">Difficulty: <span className="capitalize font-semibold text-primary">{difficulty}</span></p>
+            <p className="text-sm text-muted-foreground">
+              Difficulty: <span className="capitalize font-semibold text-primary">{difficulty}</span>
+              {" • "}AI Rating: <span className="font-semibold text-primary">{AI_RATINGS[difficulty]}</span>
+              {" • "}Your Rating: <span className="font-semibold text-primary">{profile.game_rating}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -332,7 +350,7 @@ const ComputerMatch = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Play vs Computer</h1>
             <p className="text-muted-foreground">
               Playing as <span className="capitalize font-semibold text-primary">{playerColor}</span> •
-              Difficulty: <span className="capitalize font-semibold text-primary">{difficulty}</span>
+              Difficulty: <span className="capitalize font-semibold text-primary">{difficulty}</span> ({AI_RATINGS[difficulty]} ELO)
               {isThinking && (
                 <span className="ml-2 inline-flex items-center gap-1">
                   <span className="animate-pulse">🤔</span>

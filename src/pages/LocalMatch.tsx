@@ -1,22 +1,10 @@
 import { useState, useCallback } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Undo2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  Board,
-  Position,
-  PieceColor,
-  PieceType,
-  PIECE_SYMBOLS,
-  CastlingRights,
-  createInitialBoard,
-  createInitialCastlingRights,
-  getValidMoves,
-  makeMove,
-  updateCastlingRights,
-  isKingInCheck,
-  isCheckmate,
-  isStalemate,
-  isPromotionMove,
+  Board, Position, PieceColor, PieceType, PIECE_SYMBOLS, CastlingRights,
+  createInitialBoard, createInitialCastlingRights, getValidMoves, makeMove,
+  updateCastlingRights, isKingInCheck, isCheckmate, isStalemate, isPromotionMove,
 } from "@/lib/chess";
 import { ChessTimer, TimeControl, TIME_CONTROLS } from "@/components/ChessTimer";
 import { PromotionDialog } from "@/components/PromotionDialog";
@@ -24,6 +12,8 @@ import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
 import { TimeControlDialog } from "@/components/TimeControlDialog";
 import { GameEndDialog } from "@/components/GameEndDialog";
 import { GameAnalysis } from "@/components/GameAnalysis";
+import { useProfile } from "@/hooks/useProfile";
+import { getNewRating } from "@/lib/elo";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -38,6 +28,17 @@ const boardToString = (board: Board, turn: PieceColor): string => {
     }
   return s;
 };
+
+interface HistoryEntry {
+  board: Board;
+  turn: PieceColor;
+  castlingRights: CastlingRights;
+  capturedPieces: { white: string[]; black: string[] };
+  moveHistory: MoveRecord[];
+  moveNumber: number;
+  halfMoveClock: number;
+  positionHistory: Map<string, number>;
+}
 
 const LocalMatch = () => {
   const [board, setBoard] = useState<Board>(createInitialBoard);
@@ -61,6 +62,9 @@ const LocalMatch = () => {
     return m;
   });
   const [halfMoveClock, setHalfMoveClock] = useState(0);
+  const [undoStack, setUndoStack] = useState<HistoryEntry[]>([]);
+  const { profile, updateProfile } = useProfile();
+  const [ratingUpdated, setRatingUpdated] = useState(false);
 
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
   const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout" || gameStatus === "repetition" || gameStatus === "fifty-move";
@@ -72,7 +76,36 @@ const LocalMatch = () => {
     setShowEndDialog(true);
   }, []);
 
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0 || isGameOver) return;
+    const prev = undoStack[undoStack.length - 1];
+    setBoard(prev.board);
+    setCurrentTurn(prev.turn);
+    setCastlingRights(prev.castlingRights);
+    setCapturedPieces(prev.capturedPieces);
+    setMoveHistory(prev.moveHistory);
+    setMoveNumber(prev.moveNumber);
+    setHalfMoveClock(prev.halfMoveClock);
+    setPositionHistory(prev.positionHistory);
+    setSelectedSquare(null);
+    setValidMoves([]);
+    setGameStatus("playing");
+    setUndoStack(s => s.slice(0, -1));
+  }, [undoStack, isGameOver]);
+
   const executeMove = useCallback((from: Position, to: Position, promotionPiece?: PieceType) => {
+    // Save state for undo
+    setUndoStack(s => [...s, {
+      board: board.map(r => [...r]),
+      turn: currentTurn,
+      castlingRights: { ...castlingRights },
+      capturedPieces: { white: [...capturedPieces.white], black: [...capturedPieces.black] },
+      moveHistory: [...moveHistory],
+      moveNumber,
+      halfMoveClock,
+      positionHistory: new Map(positionHistory),
+    }]);
+
     const capturedPiece = board[to.row][to.col];
     const movingPiece = board[from.row][from.col];
     const newRights = updateCastlingRights(castlingRights, board, from, to);
@@ -105,11 +138,9 @@ const LocalMatch = () => {
     setMoveHistory(prev => [...prev, record]);
     if (currentTurn === "black") setMoveNumber(n => n + 1);
 
-    // 50-move rule: reset on capture or pawn move
     const newHalfMove = (capturedPiece || movingPiece?.type === "pawn") ? 0 : halfMoveClock + 1;
     setHalfMoveClock(newHalfMove);
 
-    // Threefold repetition
     const posKey = boardToString(newBoard, nextTurn);
     const newPosHistory = new Map(positionHistory);
     newPosHistory.set(posKey, (newPosHistory.get(posKey) || 0) + 1);
@@ -139,7 +170,29 @@ const LocalMatch = () => {
     } else {
       setGameStatus("playing");
     }
-  }, [board, castlingRights, currentTurn, moveNumber, halfMoveClock, positionHistory]);
+  }, [board, castlingRights, currentTurn, moveNumber, halfMoveClock, positionHistory, capturedPieces, moveHistory]);
+
+  // Update profile on game end
+  const handleGameEnd = useCallback(() => {
+    if (ratingUpdated) return;
+    setRatingUpdated(true);
+    const isDraw = gameStatus === "stalemate" || gameStatus === "repetition" || gameStatus === "fifty-move";
+    if (isDraw) {
+      updateProfile({ draws: profile.draws + 1 });
+    } else if (winner) {
+      // In local match, just count as a game played. Count white win as win.
+      if (winner === "white") {
+        updateProfile({ wins: profile.wins + 1, game_rating: getNewRating(profile.game_rating, 800, "win") });
+      } else {
+        updateProfile({ losses: profile.losses + 1, game_rating: getNewRating(profile.game_rating, 800, "loss") });
+      }
+    }
+  }, [gameStatus, winner, ratingUpdated, profile, updateProfile]);
+
+  // Call handleGameEnd when game is over
+  if (isGameOver && !ratingUpdated) {
+    handleGameEnd();
+  }
 
   const handleSquareClick = useCallback(
     (row: number, col: number) => {
@@ -196,6 +249,8 @@ const LocalMatch = () => {
     setShowAnalysis(false);
     setTimeControl(null);
     setHalfMoveClock(0);
+    setUndoStack([]);
+    setRatingUpdated(false);
     const m = new Map<string, number>();
     m.set(boardToString(createInitialBoard(), "white"), 1);
     setPositionHistory(m);
@@ -325,9 +380,18 @@ const LocalMatch = () => {
                 <div className="flex gap-1 text-2xl">{capturedPieces.white.map((p, i) => <span key={i}>{p}</span>)}</div>
               </div>
 
-              <button onClick={resetGame} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                New Game
-              </button>
+              <div className="flex gap-3">
+                <button onClick={resetGame} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                  New Game
+                </button>
+                <button
+                  onClick={handleUndo}
+                  disabled={undoStack.length === 0 || isGameOver}
+                  className="flex items-center gap-2 px-4 py-3 bg-card text-foreground border border-border rounded-lg font-semibold hover:bg-secondary transition-colors disabled:opacity-40"
+                >
+                  <Undo2 className="w-4 h-4" /> Undo
+                </button>
+              </div>
             </div>
 
             <div className="order-last">

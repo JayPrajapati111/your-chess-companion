@@ -1,8 +1,9 @@
-import { Trophy, Target, Puzzle, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
-import { ProfileData } from "@/hooks/useProfile";
+import { Trophy, Target, Puzzle, TrendingUp, TrendingDown, Minus, Swords, History } from "lucide-react";
+import { ProfileData, GameRecord } from "@/hooks/useProfile";
 
 interface ProfileSidebarProps {
   profile: ProfileData;
+  gameHistory?: GameRecord[];
 }
 
 const getRatingTier = (rating: number) => {
@@ -14,7 +15,7 @@ const getRatingTier = (rating: number) => {
   return { label: "Master", color: "text-purple-500", stars: 6 };
 };
 
-export const ProfileSidebar = ({ profile }: ProfileSidebarProps) => {
+export const ProfileSidebar = ({ profile, gameHistory = [] }: ProfileSidebarProps) => {
   const totalGames = profile.wins + profile.losses + profile.draws;
   const winRate = totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0;
   const gameTier = getRatingTier(profile.game_rating);
@@ -25,9 +26,7 @@ export const ProfileSidebar = ({ profile }: ProfileSidebarProps) => {
       {/* Header */}
       <div className="bg-gradient-to-r from-primary/20 to-accent/10 px-5 py-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-2xl">
-            ♔
-          </div>
+          <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-2xl">♔</div>
           <div>
             <h2 className="text-lg font-bold text-foreground">{profile.display_name || "Guest"}</h2>
             <p className="text-xs text-muted-foreground">Chess Player</p>
@@ -119,9 +118,35 @@ export const ProfileSidebar = ({ profile }: ProfileSidebarProps) => {
           <p className="text-xs text-muted-foreground mt-1">{profile.puzzles_solved} puzzles solved</p>
         </div>
 
+        {/* Recent Games */}
+        {gameHistory.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Recent Games</span>
+            </div>
+            <div className="space-y-1.5">
+              {gameHistory.slice(0, 5).map((game, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-lg text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      game.result === "win" ? "bg-green-500" : game.result === "loss" ? "bg-red-500" : "bg-yellow-500"
+                    }`} />
+                    <span className="font-semibold text-foreground capitalize">{game.result}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    {game.time_control && <span>{game.time_control}</span>}
+                    <span>{game.moves.length} moves</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Total Games */}
         <div className="text-center pt-2 border-t border-border">
-          <p className="text-xs text-muted-foreground">Total Games Played</p>
+          <p className="text-xs text-muted-foreground">Total Games Played (vs Computer)</p>
           <p className="text-2xl font-bold text-foreground">{totalGames}</p>
         </div>
       </div>

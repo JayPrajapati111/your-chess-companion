@@ -57,7 +57,7 @@ const ComputerMatch = () => {
     return m;
   });
   const [halfMoveClock, setHalfMoveClock] = useState(0);
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, saveGame } = useProfile();
   const [ratingUpdated, setRatingUpdated] = useState(false);
 
   const aiColor: PieceColor = playerColor === "white" ? "black" : "white";
@@ -148,6 +148,12 @@ const ComputerMatch = () => {
     setRatingUpdated(true);
     const aiRating = AI_RATINGS[difficulty] || 1000;
     const isDraw = gameStatus === "stalemate" || gameStatus === "repetition" || gameStatus === "fifty-move";
+    const resultStr = isDraw ? "draw" : (winner === playerColor ? "win" : "loss");
+    
+    // Save game to history
+    const moveStrs = moveHistory.map(m => `${m.from}${m.to}`);
+    saveGame({ result: resultStr, moves: moveStrs, time_control: timeControl?.label });
+
     if (isDraw) {
       updateProfile({
         draws: profile.draws + 1,

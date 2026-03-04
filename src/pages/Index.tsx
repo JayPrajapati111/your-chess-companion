@@ -6,7 +6,7 @@ import { useProfile } from "@/hooks/useProfile";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { profile } = useProfile();
+  const { profile, gameHistory, resetProfile } = useProfile();
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -49,7 +49,7 @@ const Index = () => {
           </div>
 
           <div className="lg:w-80">
-            <ProfileSidebar profile={profile} />
+            <ProfileSidebar profile={profile} gameHistory={gameHistory} />
           </div>
         </div>
       </main>

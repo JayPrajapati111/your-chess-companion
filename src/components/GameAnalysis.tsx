@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { ArrowLeft, ArrowRight, BarChart3, Lightbulb, ThumbsUp, ThumbsDown, Star, AlertTriangle, XCircle, BookOpen, ChevronLeft, Eye } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Star, BookOpen, ChevronLeft, Eye, Flag } from "lucide-react";
 import { MoveRecord } from "./MoveHistory";
-import { Board, PieceColor, PIECE_SYMBOLS, createInitialBoard, makeMove, Position, getValidMoves, isKingInCheck, CastlingRights, createInitialCastlingRights, updateCastlingRights } from "@/lib/chess";
+import { Board, PieceColor, PIECE_SYMBOLS, createInitialBoard, makeMove, Position, CastlingRights, createInitialCastlingRights, updateCastlingRights } from "@/lib/chess";
 import { evaluateBoardForAnalysis, getBestMoveForAnalysis } from "@/lib/chessAnalysis";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -22,17 +22,18 @@ interface AnalyzedMove {
   commentary: string;
 }
 
-type MoveQuality = "brilliant" | "great" | "best" | "excellent" | "good" | "book" | "inaccuracy" | "mistake" | "blunder";
+type MoveQuality = "brilliant" | "great" | "best" | "excellent" | "good" | "book" | "inaccuracy" | "mistake" | "miss" | "blunder";
 
 const QUALITY_CONFIG: Record<MoveQuality, { icon: React.ReactNode; color: string; label: string; bgColor: string }> = {
   brilliant: { icon: <span className="text-lg font-bold">‼</span>, color: "text-cyan-400", bgColor: "bg-cyan-500", label: "Brilliant" },
   great: { icon: <span className="text-lg font-bold">!</span>, color: "text-blue-400", bgColor: "bg-blue-500", label: "Great" },
   best: { icon: <Star className="w-4 h-4" />, color: "text-green-500", bgColor: "bg-green-600", label: "Best" },
-  excellent: { icon: <ThumbsUp className="w-4 h-4" />, color: "text-green-400", bgColor: "bg-green-500", label: "Excellent" },
+  excellent: { icon: <span className="text-sm">✓</span>, color: "text-green-400", bgColor: "bg-green-500", label: "Excellent" },
   good: { icon: <span className="text-sm">✓</span>, color: "text-green-300", bgColor: "bg-green-400", label: "Good" },
   book: { icon: <BookOpen className="w-4 h-4" />, color: "text-amber-400", bgColor: "bg-amber-500", label: "Book" },
   inaccuracy: { icon: <span className="font-bold">?!</span>, color: "text-yellow-500", bgColor: "bg-yellow-500", label: "Inaccuracy" },
   mistake: { icon: <span className="font-bold">?</span>, color: "text-orange-500", bgColor: "bg-orange-500", label: "Mistake" },
+  miss: { icon: <span className="font-bold">✕</span>, color: "text-orange-400", bgColor: "bg-orange-400", label: "Miss" },
   blunder: { icon: <span className="font-bold">??</span>, color: "text-red-500", bgColor: "bg-red-600", label: "Blunder" },
 };
 
@@ -43,6 +44,9 @@ const PIECE_LETTERS: Record<string, string> = {
 const PIECE_ICONS: Record<string, string> = {
   king: "♔", queen: "♕", rook: "♖", bishop: "♗", knight: "♘", pawn: "♙",
 };
+
+const FILES = "abcdefgh";
+const parseNotation = (s: string): Position => ({ row: 8 - parseInt(s[1]), col: FILES.indexOf(s[0]) });
 
 function formatMoveNotation(move: MoveRecord): string {
   if (move.isCastling === "kingside") return "O-O";
@@ -57,10 +61,8 @@ function formatMoveNotation(move: MoveRecord): string {
 }
 
 function getCommentary(quality: MoveQuality, move: MoveRecord, evalAfter: number): string {
-  const evalStr = evalAfter > 0 ? `+${(evalAfter / 100).toFixed(2)}` : (evalAfter / 100).toFixed(2);
   const pieceIcon = PIECE_ICONS[move.piece] || "";
   const notation = formatMoveNotation(move);
-  
   switch (quality) {
     case "brilliant": return `Incredible move! ${pieceIcon}${notation} creates a stunning tactical opportunity.`;
     case "great": return `Nice ${move.piece === "knight" ? "fork" : "move"}! You'll be winning material.`;
@@ -68,15 +70,13 @@ function getCommentary(quality: MoveQuality, move: MoveRecord, evalAfter: number
     case "excellent": return `Strong play. This keeps the pressure on your opponent.`;
     case "good": return `A solid move that maintains your position.`;
     case "book": return `A fundamental move that leads to several exciting openings.`;
-    case "inaccuracy": return `Their central pawn is now blocked. A slightly better option was available.`;
+    case "inaccuracy": return `Good job developing, but you blocked your center pawn. A slightly better option was available.`;
     case "mistake": return `This gives away some advantage. There was a stronger continuation.`;
-    case "blunder": return `A serious mistake that changes the evaluation significantly.`;
+    case "miss": return `You missed a tactical opportunity here.`;
+    case "blunder": return `You are losing a ${move.captured ? move.captured : "piece"} this way. A serious mistake that changes the evaluation significantly.`;
     default: return "";
   }
 }
-
-const FILES = "abcdefgh";
-const parseNotation = (s: string): Position => ({ row: 8 - parseInt(s[1]), col: FILES.indexOf(s[0]) });
 
 export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps) => {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
@@ -113,8 +113,10 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
         quality = "excellent";
       } else if (evalDrop < 30) {
         quality = "good";
-      } else if (evalDrop < 80) {
+      } else if (evalDrop < 60) {
         quality = "inaccuracy";
+      } else if (evalDrop < 120) {
+        quality = "miss";
       } else if (evalDrop < 200) {
         quality = "mistake";
       } else {
@@ -123,10 +125,12 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
 
       let bestMovePos: { from: Position; to: Position } | undefined;
       let bestMoveStr: string | undefined;
+      let bestEvalVal: number | undefined;
       if (best && quality !== "best" && quality !== "book") {
         bestMovePos = { from: best.from, to: best.to };
         const piece = board[best.from.row][best.from.col];
         bestMoveStr = `${PIECE_LETTERS[piece?.type || "pawn"]}${FILES[best.to.col]}${8 - best.to.row}`;
+        bestEvalVal = best.eval;
       }
 
       results.push({
@@ -136,7 +140,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
         quality,
         bestMove: bestMovePos,
         bestMoveStr,
-        bestEval: best?.eval,
+        bestEval: bestEvalVal,
         commentary: getCommentary(quality, move, evalAfter),
       });
 
@@ -159,7 +163,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
     const colorMoves = analysis.filter(a => a.move.color === color);
     if (colorMoves.length === 0) return 0;
     const scores: Record<MoveQuality, number> = {
-      brilliant: 100, great: 95, best: 100, excellent: 90, good: 75, book: 100, inaccuracy: 50, mistake: 25, blunder: 0,
+      brilliant: 100, great: 95, best: 100, excellent: 90, good: 75, book: 100, inaccuracy: 50, mistake: 25, miss: 35, blunder: 0,
     };
     const total = colorMoves.reduce((sum, m) => sum + scores[m.quality], 0);
     return Math.round(total / colorMoves.length * 10) / 10;
@@ -168,28 +172,20 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
   const whiteAccuracy = computeAccuracy("white");
   const blackAccuracy = computeAccuracy("black");
   const countQuality = (color: PieceColor, q: MoveQuality) => analysis.filter(a => a.move.color === color && a.quality === q).length;
-  const qualityTypes: MoveQuality[] = ["brilliant", "great", "best", "excellent", "good", "book", "inaccuracy", "mistake", "blunder"];
+  const qualityTypes: MoveQuality[] = ["brilliant", "great", "best", "excellent", "good", "book", "inaccuracy", "mistake", "miss", "blunder"];
   const currentAnalysis = currentMoveIndex >= 0 ? analysis[currentMoveIndex] : null;
 
-  // Eval bar calculation - normalize to 0-100 range for display
   const currentEval = currentAnalysis ? currentAnalysis.evalAfter : 0;
-  const evalCentipawns = currentEval;
-  const whiteBarPercent = Math.min(95, Math.max(5, 50 + (evalCentipawns / 40)));
-  const evalDisplay = evalCentipawns >= 0 ? `+${(evalCentipawns / 100).toFixed(2)}` : (evalCentipawns / 100).toFixed(2);
+  const whiteBarPercent = Math.min(95, Math.max(5, 50 + (currentEval / 40)));
+  const evalDisplay = currentEval >= 0 ? `+${(currentEval / 100).toFixed(1)}` : (currentEval / 100).toFixed(1);
 
-  const goNext = () => {
-    setCurrentMoveIndex(i => Math.min(moves.length - 1, i + 1));
-    setShowBestMove(false);
-  };
-  const goPrev = () => {
-    setCurrentMoveIndex(i => Math.max(-1, i - 1));
-    setShowBestMove(false);
-  };
+  const goNext = () => { setCurrentMoveIndex(i => Math.min(moves.length - 1, i + 1)); setShowBestMove(false); };
+  const goPrev = () => { setCurrentMoveIndex(i => Math.max(-1, i - 1)); setShowBestMove(false); };
 
   const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
   const filesArr = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-  // Summary screen (before review starts)
+  // Summary screen
   if (!reviewStarted) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 relative">
@@ -208,25 +204,22 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
 
           {/* Coach message */}
           <div className="flex items-start gap-3 mb-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-3xl shrink-0">
-              🧑‍🏫
-            </div>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-3xl shrink-0">🧑‍🏫</div>
             <div className="bg-foreground text-background rounded-2xl rounded-tl-none px-5 py-3 text-sm font-medium">
               {whiteAccuracy > blackAccuracy
                 ? `Way to go! ${playerLabel.white} took the advantage when they saw their chance.`
                 : blackAccuracy > whiteAccuracy
                   ? `Good game! ${playerLabel.black} played more accurately overall.`
-                  : `A closely matched game! Both sides played well.`
-              }
+                  : `A closely matched game! Both sides played well.`}
             </div>
           </div>
 
-          {/* Eval chart placeholder */}
+          {/* Mini eval chart */}
           <div className="bg-card rounded-xl border border-border p-4 mb-6 h-16 flex items-end gap-px overflow-hidden">
             {analysis.map((a, i) => {
               const h = Math.min(100, Math.max(5, 50 + a.evalAfter / 40));
               return (
-                <div key={i} className="flex-1 bg-foreground/20 rounded-t-sm relative" style={{ height: `${h}%` }}>
+                <div key={i} className="flex-1 rounded-t-sm relative" style={{ height: `${h}%` }}>
                   <div className="absolute inset-0 rounded-t-sm" style={{ background: a.evalAfter >= 0 ? 'hsl(0 0% 90%)' : 'hsl(220 10% 25%)' }} />
                 </div>
               );
@@ -234,7 +227,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
           </div>
 
           {/* Players & Accuracy */}
-          <div className="grid grid-cols-3 gap-4 mb-6 items-center">
+          <div className="grid grid-cols-3 gap-4 mb-4 items-center">
             <div className="text-center">
               <p className="text-sm font-bold text-foreground">{playerLabel.white}</p>
               <div className="text-4xl mt-1">♔</div>
@@ -246,7 +239,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-6 items-center">
+          <div className="grid grid-cols-3 gap-4 mb-4 items-center">
             <div className="text-center">
               <div className="inline-block px-5 py-2 rounded-lg bg-foreground text-background text-2xl font-bold">{whiteAccuracy}</div>
             </div>
@@ -258,7 +251,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
 
           <div className="border-t border-border my-4" />
 
-          {/* Quality breakdown table */}
+          {/* Quality breakdown - including inaccuracy, mistake, miss, blunder */}
           <div className="space-y-2 mb-6">
             {qualityTypes.map(q => {
               const cfg = QUALITY_CONFIG[q];
@@ -280,7 +273,6 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
             })}
           </div>
 
-          {/* Start Review Button */}
           <button
             onClick={() => { setReviewStarted(true); setCurrentMoveIndex(0); }}
             className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-opacity"
@@ -292,7 +284,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
     );
   }
 
-  // Review mode - chess.com style
+  // Review mode
   return (
     <div className="min-h-screen bg-background flex flex-col relative">
       <div className="chess-bg" />
@@ -310,16 +302,20 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
         {/* Coach commentary */}
         {currentAnalysis && (
           <div className="flex items-start gap-3 px-4 py-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-2xl shrink-0">
-              🧑‍🏫
-            </div>
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-2xl shrink-0">🧑‍🏫</div>
             <div className="bg-foreground text-background rounded-2xl rounded-tl-none px-4 py-3 text-sm flex-1">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className={`w-5 h-5 rounded-full ${QUALITY_CONFIG[currentAnalysis.quality].bgColor} flex items-center justify-center text-white text-xs`}>
                     {QUALITY_CONFIG[currentAnalysis.quality].icon}
                   </span>
-                  <span className="font-bold">{PIECE_ICONS[currentAnalysis.move.piece]}{formatMoveNotation(currentAnalysis.move)} is {currentAnalysis.quality === "best" ? "best" : (["brilliant","great","excellent","good"].includes(currentAnalysis.quality) ? `a ${currentAnalysis.quality} move` : `an ${currentAnalysis.quality}`)}</span>
+                  <span className="font-bold">
+                    {PIECE_ICONS[currentAnalysis.move.piece]}{formatMoveNotation(currentAnalysis.move)} is {
+                      currentAnalysis.quality === "best" ? "best" :
+                      ["brilliant","great","excellent","good"].includes(currentAnalysis.quality) ? `a ${currentAnalysis.quality} move` :
+                      `an ${currentAnalysis.quality}`
+                    }
+                  </span>
                 </div>
                 <span className="text-xs bg-background/20 px-2 py-0.5 rounded font-mono">{evalDisplay}</span>
               </div>
@@ -332,9 +328,13 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
         <div className="flex-1 flex items-center justify-center px-2 py-2">
           <div className="flex gap-1">
             {/* Eval bar */}
-            <div className="w-6 rounded-lg overflow-hidden border border-border flex flex-col" style={{ height: "min(80vw, 384px)" }}>
-              <div className="bg-gray-800 transition-all duration-500 ease-in-out" style={{ height: `${100 - whiteBarPercent}%` }} />
-              <div className="bg-gray-100 transition-all duration-500 ease-in-out flex-1" />
+            <div className="w-7 rounded-lg overflow-hidden border border-border flex flex-col" style={{ height: "min(80vw, 384px)" }}>
+              <div className="bg-gray-800 transition-all duration-500 ease-in-out flex items-end justify-center" style={{ height: `${100 - whiteBarPercent}%` }}>
+                {currentEval < 0 && <span className="text-[9px] font-bold text-gray-300 pb-0.5">{evalDisplay}</span>}
+              </div>
+              <div className="bg-gray-100 transition-all duration-500 ease-in-out flex-1 flex items-start justify-center">
+                {currentEval >= 0 && <span className="text-[9px] font-bold text-gray-700 pt-0.5">{evalDisplay}</span>}
+              </div>
             </div>
 
             {/* Board */}
@@ -347,23 +347,33 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
                     const isToSquare = currentAnalysis && parseNotation(currentAnalysis.move.to).row === ri && parseNotation(currentAnalysis.move.to).col === ci;
                     const isBestFrom = showBestMove && currentAnalysis?.bestMove && currentAnalysis.bestMove.from.row === ri && currentAnalysis.bestMove.from.col === ci;
                     const isBestTo = showBestMove && currentAnalysis?.bestMove && currentAnalysis.bestMove.to.row === ri && currentAnalysis.bestMove.to.col === ci;
-                    
+
+                    // Color the move highlight based on quality
+                    let moveHighlightColor = "";
+                    if (isToSquare && currentAnalysis) {
+                      const q = currentAnalysis.quality;
+                      if (q === "blunder") moveHighlightColor = "!bg-red-500/50";
+                      else if (q === "mistake") moveHighlightColor = "!bg-orange-500/50";
+                      else if (q === "miss") moveHighlightColor = "!bg-orange-400/40";
+                      else if (q === "inaccuracy") moveHighlightColor = "!bg-yellow-500/50";
+                      else moveHighlightColor = "!bg-yellow-400/50";
+                    }
+
                     return (
                       <div
                         key={`${ri}-${ci}`}
                         className={`relative flex items-center justify-center
                           ${isLight ? "chess-square-light" : "chess-square-dark"}
-                          ${isToSquare ? "!bg-yellow-400/50" : ""}
+                          ${isToSquare ? moveHighlightColor : ""}
                           ${isFromSquare ? "!bg-yellow-400/30" : ""}
                           ${isBestTo ? "!bg-green-400/50" : ""}
                           ${isBestFrom ? "!bg-green-400/30" : ""}
                         `}
                         style={{ width: "calc(min(80vw, 384px) / 8)", height: "calc(min(80vw, 384px) / 8)" }}
                       >
-                        {/* Rank/file labels */}
                         {ci === 0 && <span className="absolute top-0.5 left-0.5 text-[10px] font-bold opacity-50">{ranks[ri]}</span>}
                         {ri === 7 && <span className="absolute bottom-0.5 right-0.5 text-[10px] font-bold opacity-50">{filesArr[ci]}</span>}
-                        
+
                         {piece && (
                           <span className={`text-2xl md:text-3xl select-none ${piece.color === "white" ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]" : "text-gray-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"}`}
                             style={{ WebkitTextStroke: piece.color === "white" ? "1px #333" : "none" }}
@@ -372,14 +382,14 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
                           </span>
                         )}
 
-                        {/* Quality badge on the move target */}
+                        {/* Quality badge */}
                         {isToSquare && currentAnalysis && (
                           <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${QUALITY_CONFIG[currentAnalysis.quality].bgColor} flex items-center justify-center text-white text-[10px] z-10 shadow-lg`}>
                             {QUALITY_CONFIG[currentAnalysis.quality].icon}
                           </div>
                         )}
 
-                        {/* Best move arrow indicator */}
+                        {/* Best move star */}
                         {isBestTo && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-[10px] z-10 shadow-lg">
                             <Star className="w-3 h-3" />
@@ -393,6 +403,23 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
             </div>
           </div>
         </div>
+
+        {/* Move quality summary strip */}
+        {currentAnalysis && (
+          <div className="flex items-center justify-center gap-3 px-4 py-1 text-[10px]">
+            {(["inaccuracy", "mistake", "miss", "blunder"] as MoveQuality[]).map(q => {
+              const count = countQuality(currentAnalysis.move.color, q);
+              if (count === 0) return null;
+              const cfg = QUALITY_CONFIG[q];
+              return (
+                <div key={q} className={`flex items-center gap-1 ${cfg.color}`}>
+                  <span className={`w-4 h-4 rounded-full ${cfg.bgColor} flex items-center justify-center text-white text-[8px]`}>{cfg.icon}</span>
+                  <span className="font-semibold">{count} {cfg.label}{count > 1 ? "s" : ""}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Bottom move strip */}
         <div className="border-t border-border px-2 py-2">
@@ -427,28 +454,41 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
           </ScrollArea>
         </div>
 
-        {/* Action buttons */}
+        {/* Action buttons - Show, Best, Retry, Next */}
         <div className="flex items-center gap-2 px-4 py-3 border-t border-border">
           {currentAnalysis?.bestMove && currentAnalysis.quality !== "best" && currentAnalysis.quality !== "book" && (
-            <button
-              onClick={() => setShowBestMove(!showBestMove)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                showBestMove ? "bg-green-600 text-white" : "bg-card border border-border text-foreground hover:bg-secondary"
-              }`}
-            >
-              <Eye className="w-4 h-4" /> Best
-            </button>
+            <>
+              <button
+                onClick={() => setShowBestMove(!showBestMove)}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  showBestMove ? "bg-green-600 text-white" : "bg-card border border-border text-foreground hover:bg-secondary"
+                }`}
+              >
+                <Flag className="w-4 h-4" />
+                Show
+              </button>
+              <button
+                onClick={() => setShowBestMove(!showBestMove)}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  showBestMove ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-secondary"
+                }`}
+              >
+                <Star className="w-4 h-4" />
+                Best
+              </button>
+            </>
           )}
           <button
-            onClick={() => { setCurrentMoveIndex(-1); setShowBestMove(false); startScenario(); }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-card border border-border text-foreground hover:bg-secondary transition-colors"
+            onClick={() => { setCurrentMoveIndex(0); setShowBestMove(false); }}
+            className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-xs font-semibold bg-card border border-border text-foreground hover:bg-secondary transition-colors"
           >
-            ↺ Retry
+            ↺
+            Retry
           </button>
           <button
             onClick={goNext}
             disabled={currentMoveIndex >= moves.length - 1}
-            className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
           >
             Next
           </button>
@@ -456,9 +496,4 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
       </div>
     </div>
   );
-
-  function startScenario() {
-    setCurrentMoveIndex(0);
-    setShowBestMove(false);
-  }
 };

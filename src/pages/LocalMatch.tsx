@@ -12,8 +12,6 @@ import { MoveHistory, MoveRecord } from "@/components/MoveHistory";
 import { TimeControlDialog } from "@/components/TimeControlDialog";
 import { GameEndDialog } from "@/components/GameEndDialog";
 import { GameAnalysis } from "@/components/GameAnalysis";
-import { useProfile } from "@/hooks/useProfile";
-import { getNewRating } from "@/lib/elo";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -63,8 +61,6 @@ const LocalMatch = () => {
   });
   const [halfMoveClock, setHalfMoveClock] = useState(0);
   const [undoStack, setUndoStack] = useState<HistoryEntry[]>([]);
-  const { profile, updateProfile } = useProfile();
-  const [ratingUpdated, setRatingUpdated] = useState(false);
 
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
   const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout" || gameStatus === "repetition" || gameStatus === "fifty-move";
@@ -172,27 +168,6 @@ const LocalMatch = () => {
     }
   }, [board, castlingRights, currentTurn, moveNumber, halfMoveClock, positionHistory, capturedPieces, moveHistory]);
 
-  // Update profile on game end
-  const handleGameEnd = useCallback(() => {
-    if (ratingUpdated) return;
-    setRatingUpdated(true);
-    const isDraw = gameStatus === "stalemate" || gameStatus === "repetition" || gameStatus === "fifty-move";
-    if (isDraw) {
-      updateProfile({ draws: profile.draws + 1 });
-    } else if (winner) {
-      // In local match, just count as a game played. Count white win as win.
-      if (winner === "white") {
-        updateProfile({ wins: profile.wins + 1, game_rating: getNewRating(profile.game_rating, 800, "win") });
-      } else {
-        updateProfile({ losses: profile.losses + 1, game_rating: getNewRating(profile.game_rating, 800, "loss") });
-      }
-    }
-  }, [gameStatus, winner, ratingUpdated, profile, updateProfile]);
-
-  // Call handleGameEnd when game is over
-  if (isGameOver && !ratingUpdated) {
-    handleGameEnd();
-  }
 
   const handleSquareClick = useCallback(
     (row: number, col: number) => {
@@ -250,7 +225,7 @@ const LocalMatch = () => {
     setTimeControl(null);
     setHalfMoveClock(0);
     setUndoStack([]);
-    setRatingUpdated(false);
+    
     const m = new Map<string, number>();
     m.set(boardToString(createInitialBoard(), "white"), 1);
     setPositionHistory(m);

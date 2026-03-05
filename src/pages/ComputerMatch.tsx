@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { playMoveSound, playCaptureSound, playCheckSound, playCheckmateSound, playGameOverSound } from "@/lib/sounds";
 import {
   Board, Position, PieceColor, PieceType, PIECE_SYMBOLS, CastlingRights,
   createInitialBoard, createInitialCastlingRights, getValidMoves, makeMove,
@@ -59,6 +60,7 @@ const ComputerMatch = () => {
   const [halfMoveClock, setHalfMoveClock] = useState(0);
   const { profile, updateProfile, saveGame } = useProfile();
   const [ratingUpdated, setRatingUpdated] = useState(false);
+  const [lastMove, setLastMove] = useState<{ from: Position; to: Position } | null>(null);
 
   const aiColor: PieceColor = playerColor === "white" ? "black" : "white";
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
@@ -120,24 +122,31 @@ const ComputerMatch = () => {
     setBoard(newBoard);
     setCastlingRights(newRights);
     setCurrentTurn(nextColor);
+    setLastMove({ from, to });
 
     if (isMate) {
       setGameStatus("checkmate");
       setWinner(color);
       setShowEndDialog(true);
+      playCheckmateSound();
     } else if (isStalemate(newBoard, nextColor, newRights)) {
       setGameStatus("stalemate");
       setShowEndDialog(true);
+      playGameOverSound();
     } else if ((newPosHistory.get(posKey) || 0) >= 3) {
       setGameStatus("repetition");
       setShowEndDialog(true);
+      playGameOverSound();
     } else if (newHalfMove >= 100) {
       setGameStatus("fifty-move");
       setShowEndDialog(true);
+      playGameOverSound();
     } else if (isCheck) {
       setGameStatus("check");
+      playCheckSound();
     } else {
       setGameStatus("playing");
+      if (capturedPiece) playCaptureSound(); else playMoveSound();
     }
 
     return { newBoard, newRights };
@@ -256,6 +265,7 @@ const ComputerMatch = () => {
     const m = new Map<string, number>();
     m.set(boardToString(createInitialBoard(), "white"), 1);
     setPositionHistory(m);
+    setLastMove(null);
     if (color) {
       setPlayerColor(color);
       setGameStarted(true);
@@ -414,6 +424,7 @@ const ComputerMatch = () => {
                         const isLight = (row + col) % 2 === 0;
                         const highlighted = isSquareHighlighted(row, col);
                         const selected = isSquareSelected(row, col);
+                        const isLastMoveSquare = lastMove && ((lastMove.from.row === row && lastMove.from.col === col) || (lastMove.to.row === row && lastMove.to.col === col));
                         return (
                           <div
                             key={`${displayRow}-${displayCol}`}
@@ -421,6 +432,7 @@ const ComputerMatch = () => {
                               ${isLight ? "chess-square-light" : "chess-square-dark"}
                               ${selected ? "chess-square-selected" : ""}
                               ${highlighted ? "chess-square-highlight" : ""}
+                              ${isLastMoveSquare && !selected && !highlighted ? "chess-square-last-move" : ""}
                             `}
                             onClick={() => handleSquareClick(row, col)}
                           >

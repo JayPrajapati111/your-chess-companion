@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { ArrowLeft, Undo2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { playMoveSound, playCaptureSound, playCheckSound, playCheckmateSound, playGameOverSound } from "@/lib/sounds";
 import {
   Board, Position, PieceColor, PieceType, PIECE_SYMBOLS, CastlingRights,
   createInitialBoard, createInitialCastlingRights, getValidMoves, makeMove,
@@ -61,6 +62,7 @@ const LocalMatch = () => {
   });
   const [halfMoveClock, setHalfMoveClock] = useState(0);
   const [undoStack, setUndoStack] = useState<HistoryEntry[]>([]);
+  const [lastMove, setLastMove] = useState<{ from: Position; to: Position } | null>(null);
 
   const isGameActive = gameStatus === "playing" || gameStatus === "check";
   const isGameOver = gameStatus === "checkmate" || gameStatus === "stalemate" || gameStatus === "timeout" || gameStatus === "repetition" || gameStatus === "fifty-move";
@@ -147,24 +149,31 @@ const LocalMatch = () => {
     setSelectedSquare(null);
     setValidMoves([]);
     setCurrentTurn(nextTurn);
+    setLastMove({ from, to });
 
     if (isMate) {
       setGameStatus("checkmate");
       setWinner(currentTurn);
       setShowEndDialog(true);
+      playCheckmateSound();
     } else if (isStalemate(newBoard, nextTurn, newRights)) {
       setGameStatus("stalemate");
       setShowEndDialog(true);
+      playGameOverSound();
     } else if ((newPosHistory.get(posKey) || 0) >= 3) {
       setGameStatus("repetition");
       setShowEndDialog(true);
+      playGameOverSound();
     } else if (newHalfMove >= 100) {
       setGameStatus("fifty-move");
       setShowEndDialog(true);
+      playGameOverSound();
     } else if (isCheck) {
       setGameStatus("check");
+      playCheckSound();
     } else {
       setGameStatus("playing");
+      if (capturedPiece) playCaptureSound(); else playMoveSound();
     }
   }, [board, castlingRights, currentTurn, moveNumber, halfMoveClock, positionHistory, capturedPieces, moveHistory]);
 
@@ -225,6 +234,7 @@ const LocalMatch = () => {
     setTimeControl(null);
     setHalfMoveClock(0);
     setUndoStack([]);
+    setLastMove(null);
     
     const m = new Map<string, number>();
     m.set(boardToString(createInitialBoard(), "white"), 1);
@@ -313,6 +323,7 @@ const LocalMatch = () => {
                         const isLight = (rowIndex + colIndex) % 2 === 0;
                         const highlighted = isSquareHighlighted(rowIndex, colIndex);
                         const selected = isSquareSelected(rowIndex, colIndex);
+                        const isLastMoveSquare = lastMove && ((lastMove.from.row === rowIndex && lastMove.from.col === colIndex) || (lastMove.to.row === rowIndex && lastMove.to.col === colIndex));
                         return (
                           <div
                             key={`${rowIndex}-${colIndex}`}
@@ -320,6 +331,7 @@ const LocalMatch = () => {
                               ${isLight ? "chess-square-light" : "chess-square-dark"}
                               ${selected ? "chess-square-selected" : ""}
                               ${highlighted ? "chess-square-highlight" : ""}
+                              ${isLastMoveSquare && !selected && !highlighted ? "chess-square-last-move" : ""}
                             `}
                             onClick={() => handleSquareClick(rowIndex, colIndex)}
                           >

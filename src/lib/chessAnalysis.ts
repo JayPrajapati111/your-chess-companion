@@ -114,3 +114,10 @@ export function getBestMoveForAnalysis(board: Board, color: PieceColor, rights?:
 
   return { ...bestMove, eval: bestScore };
 }
+
+// Evaluate a specific move using minimax search (not just static eval)
+export function evaluateMoveBySearch(board: Board, from: Position, to: Position, color: PieceColor): number {
+  const newBoard = makeMove(board, from, to);
+  // Search from opponent's perspective then negate
+  return minimax(newBoard, 3, -Infinity, Infinity, false, color);
+}

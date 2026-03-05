@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { ArrowLeft, ArrowRight, BarChart3, Star, BookOpen, ChevronLeft, Eye, Flag } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Star, ChevronLeft, Eye, Flag } from "lucide-react";
 import { MoveRecord } from "./MoveHistory";
 import { Board, PieceColor, PIECE_SYMBOLS, createInitialBoard, makeMove, Position, CastlingRights, createInitialCastlingRights, updateCastlingRights } from "@/lib/chess";
-import { evaluateBoardForAnalysis, getBestMoveForAnalysis } from "@/lib/chessAnalysis";
+import { evaluateBoardForAnalysis, getBestMoveForAnalysis, evaluateMoveBySearch } from "@/lib/chessAnalysis";
 import { ScrollArea } from "./ui/scroll-area";
 
 interface GameAnalysisProps {
@@ -22,7 +22,7 @@ interface AnalyzedMove {
   commentary: string;
 }
 
-type MoveQuality = "brilliant" | "great" | "best" | "excellent" | "good" | "book" | "inaccuracy" | "mistake" | "miss" | "blunder";
+type MoveQuality = "brilliant" | "great" | "best" | "excellent" | "good" | "inaccuracy" | "mistake" | "miss" | "blunder";
 
 const QUALITY_CONFIG: Record<MoveQuality, { icon: React.ReactNode; color: string; label: string; bgColor: string }> = {
   brilliant: { icon: <span className="text-lg font-bold">‼</span>, color: "text-cyan-400", bgColor: "bg-cyan-500", label: "Brilliant" },
@@ -30,7 +30,6 @@ const QUALITY_CONFIG: Record<MoveQuality, { icon: React.ReactNode; color: string
   best: { icon: <Star className="w-4 h-4" />, color: "text-green-500", bgColor: "bg-green-600", label: "Best" },
   excellent: { icon: <span className="text-sm">✓</span>, color: "text-green-400", bgColor: "bg-green-500", label: "Excellent" },
   good: { icon: <span className="text-sm">✓</span>, color: "text-green-300", bgColor: "bg-green-400", label: "Good" },
-  book: { icon: <BookOpen className="w-4 h-4" />, color: "text-amber-400", bgColor: "bg-amber-500", label: "Book" },
   inaccuracy: { icon: <span className="font-bold">?!</span>, color: "text-yellow-500", bgColor: "bg-yellow-500", label: "Inaccuracy" },
   mistake: { icon: <span className="font-bold">?</span>, color: "text-orange-500", bgColor: "bg-orange-500", label: "Mistake" },
   miss: { icon: <span className="font-bold">✕</span>, color: "text-orange-400", bgColor: "bg-orange-400", label: "Miss" },
@@ -69,7 +68,7 @@ function getCommentary(quality: MoveQuality, move: MoveRecord, evalAfter: number
     case "best": return `${notation} is best`;
     case "excellent": return `Strong play. This keeps the pressure on your opponent.`;
     case "good": return `A solid move that maintains your position.`;
-    case "book": return `A fundamental move that leads to several exciting openings.`;
+    case "inaccuracy": return `A slightly inaccurate move. A better option was available.`;
     case "inaccuracy": return `Good job developing, but you blocked your center pawn. A slightly better option was available.`;
     case "mistake": return `This gives away some advantage. There was a stronger continuation.`;
     case "miss": return `You missed a tactical opportunity here.`;
@@ -93,31 +92,37 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
       const move = moves[i];
       const from = parseNotation(move.from);
       const to = parseNotation(move.to);
-      const evalBefore = evaluateBoardForAnalysis(board, "white");
+      
+      // Get the best move and its search-based eval
       const best = getBestMoveForAnalysis(board, move.color, rights);
+      // Get the search-based eval of the actually played move
+      const playedMoveEval = evaluateMoveBySearch(board, from, to, move.color);
+      
       const newRights = updateCastlingRights(rights, board, from, to);
       const newBoard = makeMove(board, from, to, move.isPromotion);
+      
+      // Use static eval for display purposes (eval bar)
       const evalAfter = evaluateBoardForAnalysis(newBoard, "white");
 
-      const perspective = move.color === "white" ? 1 : -1;
-      const evalDrop = (evalBefore - evalAfter) * perspective;
+      // Compare search-based evals: best move eval vs played move eval
+      // Both are from the same color's perspective, so higher = better
+      const bestEval = best ? best.eval : playedMoveEval;
+      const evalDrop = bestEval - playedMoveEval; // centipawns lost by playing this move instead of the best
 
       let quality: MoveQuality;
-      if (best && best.from.row === from.row && best.from.col === from.col && best.to.row === to.row && best.to.col === to.col) {
+      const isBestMove = best && best.from.row === from.row && best.from.col === from.col && best.to.row === to.row && best.to.col === to.col;
+      
+      if (isBestMove || evalDrop <= 0) {
         quality = "best";
-      } else if (evalDrop < -80) {
-        quality = Math.random() > 0.6 ? "brilliant" : "great";
-      } else if (evalDrop < 0) {
+      } else if (evalDrop < 25) {
         quality = "excellent";
-      } else if (evalDrop < 20) {
-        quality = "good";
       } else if (evalDrop < 50) {
-        quality = i < 6 ? "book" : "inaccuracy";
+        quality = "good";
       } else if (evalDrop < 100) {
         quality = "inaccuracy";
       } else if (evalDrop < 200) {
         quality = "mistake";
-      } else if (evalDrop < 350) {
+      } else if (evalDrop < 500) {
         quality = "miss";
       } else {
         quality = "blunder";
@@ -126,7 +131,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
       let bestMovePos: { from: Position; to: Position } | undefined;
       let bestMoveStr: string | undefined;
       let bestEvalVal: number | undefined;
-      if (best && quality !== "best" && quality !== "book") {
+      if (best && quality !== "best") {
         bestMovePos = { from: best.from, to: best.to };
         const piece = board[best.from.row][best.from.col];
         bestMoveStr = `${PIECE_LETTERS[piece?.type || "pawn"]}${FILES[best.to.col]}${8 - best.to.row}`;
@@ -135,7 +140,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
 
       results.push({
         move,
-        evalBefore,
+        evalBefore: bestEval,
         evalAfter,
         quality,
         bestMove: bestMovePos,
@@ -163,7 +168,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
     const colorMoves = analysis.filter(a => a.move.color === color);
     if (colorMoves.length === 0) return 0;
     const scores: Record<MoveQuality, number> = {
-      brilliant: 100, great: 95, best: 100, excellent: 90, good: 75, book: 100, inaccuracy: 50, mistake: 25, miss: 35, blunder: 0,
+      brilliant: 100, great: 95, best: 100, excellent: 90, good: 75, inaccuracy: 50, mistake: 25, miss: 35, blunder: 0,
     };
     const total = colorMoves.reduce((sum, m) => sum + scores[m.quality], 0);
     return Math.round(total / colorMoves.length * 10) / 10;
@@ -172,7 +177,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
   const whiteAccuracy = computeAccuracy("white");
   const blackAccuracy = computeAccuracy("black");
   const countQuality = (color: PieceColor, q: MoveQuality) => analysis.filter(a => a.move.color === color && a.quality === q).length;
-  const qualityTypes: MoveQuality[] = ["brilliant", "great", "best", "excellent", "good", "book", "inaccuracy", "mistake", "miss", "blunder"];
+  const qualityTypes: MoveQuality[] = ["brilliant", "great", "best", "excellent", "good", "inaccuracy", "mistake", "miss", "blunder"];
   const currentAnalysis = currentMoveIndex >= 0 ? analysis[currentMoveIndex] : null;
 
   const currentEval = currentAnalysis ? currentAnalysis.evalAfter : 0;
@@ -463,7 +468,7 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
 
         {/* Action buttons - Show, Best, Retry, Next */}
         <div className="flex items-center gap-2 px-4 py-3 border-t border-border">
-          {currentAnalysis?.bestMove && currentAnalysis.quality !== "best" && currentAnalysis.quality !== "book" && (
+          {currentAnalysis?.bestMove && currentAnalysis.quality !== "best" && (
             <>
               <button
                 onClick={() => setShowBestMove(!showBestMove)}

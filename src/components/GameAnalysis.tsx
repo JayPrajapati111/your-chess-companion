@@ -103,22 +103,22 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
       const evalDrop = (evalBefore - evalAfter) * perspective;
 
       let quality: MoveQuality;
-      if (i < 4) {
-        quality = "book";
-      } else if (best && best.from.row === from.row && best.from.col === from.col && best.to.row === to.row && best.to.col === to.col) {
+      if (best && best.from.row === from.row && best.from.col === from.col && best.to.row === to.row && best.to.col === to.col) {
         quality = "best";
-      } else if (evalDrop < -50) {
-        quality = Math.random() > 0.5 ? "brilliant" : "great";
-      } else if (evalDrop < 10) {
+      } else if (evalDrop < -80) {
+        quality = Math.random() > 0.6 ? "brilliant" : "great";
+      } else if (evalDrop < 0) {
         quality = "excellent";
-      } else if (evalDrop < 30) {
+      } else if (evalDrop < 20) {
         quality = "good";
-      } else if (evalDrop < 60) {
+      } else if (evalDrop < 50) {
+        quality = i < 6 ? "book" : "inaccuracy";
+      } else if (evalDrop < 100) {
         quality = "inaccuracy";
-      } else if (evalDrop < 120) {
-        quality = "miss";
       } else if (evalDrop < 200) {
         quality = "mistake";
+      } else if (evalDrop < 350) {
+        quality = "miss";
       } else {
         quality = "blunder";
       }
@@ -375,8 +375,15 @@ export const GameAnalysis = ({ moves, playerLabel, onClose }: GameAnalysisProps)
                         {ri === 7 && <span className="absolute bottom-0.5 right-0.5 text-[10px] font-bold opacity-50">{filesArr[ci]}</span>}
 
                         {piece && (
-                          <span className={`text-2xl md:text-3xl select-none ${piece.color === "white" ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]" : "text-gray-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"}`}
-                            style={{ WebkitTextStroke: piece.color === "white" ? "1px #333" : "none" }}
+                          <span className={`text-2xl md:text-3xl select-none ${
+                            piece.color === "white" 
+                              ? "drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)]" 
+                              : "drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]"
+                          }`}
+                            style={{ 
+                              color: piece.color === "white" ? "#fff" : "#1a1a1a",
+                              WebkitTextStroke: piece.color === "white" ? "0.5px #555" : "none" 
+                            }}
                           >
                             {PIECE_SYMBOLS[piece.color][piece.type]}
                           </span>

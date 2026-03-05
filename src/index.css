@@ -132,6 +132,10 @@
   .chess-square-selected {
     background-color: hsl(var(--board-selected) / 0.6);
   }
+
+  .chess-square-last-move {
+    background-color: hsl(50 80% 55% / 0.35);
+  }
 }
 
 @layer utilities {

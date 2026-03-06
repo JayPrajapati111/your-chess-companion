@@ -9,6 +9,7 @@ import { TimeControl, TIME_CONTROLS } from "./ChessTimer";
 interface TimeControlDialogProps {
   open: boolean;
   onSelect: (tc: TimeControl) => void;
+  onClose?: () => void;
 }
 
 const getTypeColor = (type: string) => {

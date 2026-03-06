@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, RotateCcw, Lightbulb, Check, X, Trophy, Star, Flame } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useProfile } from "@/hooks/useProfile";
+import { getNewRating } from "@/lib/elo";
 import {
   Board,
   PieceColor,

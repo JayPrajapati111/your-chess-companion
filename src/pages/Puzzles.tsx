@@ -474,6 +474,7 @@ const getDifficultyLabel = (rating: number) => {
 };
 
 const Puzzles = () => {
+  const { profile, updateProfile } = useProfile();
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0);
   const [board, setBoard] = useState<Board>([]);
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);

@@ -540,6 +540,11 @@ const Puzzles = () => {
           } else {
             setPuzzleState("wrong");
             setStreak(0);
+            // Update puzzle rating on wrong answer
+            const puzzleRatingWrong = currentPuzzle.rating || 800;
+            updateProfile({
+              puzzle_rating: getNewRating(profile.puzzle_rating, puzzleRatingWrong, "loss"),
+            });
           }
         }
         setSelectedSquare(null);

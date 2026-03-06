@@ -303,7 +303,7 @@ const ComputerMatch = () => {
             </div>
           </div>
         </div>
-        <TimeControlDialog open={true} onSelect={(tc) => setTimeControl(tc)} />
+        <TimeControlDialog open={true} onSelect={(tc) => setTimeControl(tc)} onClose={() => window.history.back()} />
       </>
     );
   }

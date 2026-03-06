@@ -39,8 +39,8 @@ export const TimeControlDialog = ({ open, onSelect, onClose }: TimeControlDialog
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-lg" onPointerDownOutside={e => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && onClose) onClose(); }}>
+      <DialogContent className="sm:max-w-lg" onPointerDownOutside={e => { if (!onClose) e.preventDefault(); }}>
         <DialogHeader>
           <DialogTitle className="text-xl text-center">Choose Time Control</DialogTitle>
         </DialogHeader>

@@ -531,6 +531,12 @@ const Puzzles = () => {
               setBestStreak((b) => Math.max(b, newStreak));
               return newStreak;
             });
+            // Update profile: puzzles solved count and puzzle rating
+            const puzzleRating = currentPuzzle.rating || 800;
+            updateProfile({
+              puzzles_solved: profile.puzzles_solved + 1,
+              puzzle_rating: getNewRating(profile.puzzle_rating, puzzleRating, "win"),
+            });
           } else {
             setPuzzleState("wrong");
             setStreak(0);

@@ -9,6 +9,7 @@ import { TimeControl, TIME_CONTROLS } from "./ChessTimer";
 interface TimeControlDialogProps {
   open: boolean;
   onSelect: (tc: TimeControl) => void;
+  onClose?: () => void;
 }
 
 const getTypeColor = (type: string) => {
@@ -29,7 +30,7 @@ const getTypeLabel = (type: string) => {
   }
 };
 
-export const TimeControlDialog = ({ open, onSelect }: TimeControlDialogProps) => {
+export const TimeControlDialog = ({ open, onSelect, onClose }: TimeControlDialogProps) => {
   const grouped = {
     bullet: TIME_CONTROLS.filter(tc => tc.type === "bullet"),
     blitz: TIME_CONTROLS.filter(tc => tc.type === "blitz"),
@@ -38,8 +39,8 @@ export const TimeControlDialog = ({ open, onSelect }: TimeControlDialogProps) =>
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-lg" onPointerDownOutside={e => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && onClose) onClose(); }}>
+      <DialogContent className="sm:max-w-lg" onPointerDownOutside={e => { if (!onClose) e.preventDefault(); }}>
         <DialogHeader>
           <DialogTitle className="text-xl text-center">Choose Time Control</DialogTitle>
         </DialogHeader>

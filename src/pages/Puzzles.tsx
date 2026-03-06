@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, RotateCcw, Lightbulb, Check, X, Trophy, Star, Flame } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useProfile } from "@/hooks/useProfile";
+import { getNewRating } from "@/lib/elo";
 import {
   Board,
   PieceColor,
@@ -472,6 +474,7 @@ const getDifficultyLabel = (rating: number) => {
 };
 
 const Puzzles = () => {
+  const { profile, updateProfile } = useProfile();
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0);
   const [board, setBoard] = useState<Board>([]);
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
@@ -528,9 +531,20 @@ const Puzzles = () => {
               setBestStreak((b) => Math.max(b, newStreak));
               return newStreak;
             });
+            // Update profile: puzzles solved count and puzzle rating
+            const puzzleRating = currentPuzzle.rating || 800;
+            updateProfile({
+              puzzles_solved: profile.puzzles_solved + 1,
+              puzzle_rating: getNewRating(profile.puzzle_rating, puzzleRating, "win"),
+            });
           } else {
             setPuzzleState("wrong");
             setStreak(0);
+            // Update puzzle rating on wrong answer
+            const puzzleRatingWrong = currentPuzzle.rating || 800;
+            updateProfile({
+              puzzle_rating: getNewRating(profile.puzzle_rating, puzzleRatingWrong, "loss"),
+            });
           }
         }
         setSelectedSquare(null);

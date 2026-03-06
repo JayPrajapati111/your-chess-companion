@@ -30,7 +30,7 @@ const getTypeLabel = (type: string) => {
   }
 };
 
-export const TimeControlDialog = ({ open, onSelect }: TimeControlDialogProps) => {
+export const TimeControlDialog = ({ open, onSelect, onClose }: TimeControlDialogProps) => {
   const grouped = {
     bullet: TIME_CONTROLS.filter(tc => tc.type === "bullet"),
     blitz: TIME_CONTROLS.filter(tc => tc.type === "blitz"),

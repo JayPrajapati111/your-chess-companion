@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, RotateCcw, Lightbulb, ChevronRight, CheckCircle2, XCircle } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Board,
   Position,

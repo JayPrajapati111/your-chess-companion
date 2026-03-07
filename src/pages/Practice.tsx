@@ -480,7 +480,7 @@ const Practice = () => {
 
           if (moveIndex + 1 >= selectedScenario.solution.length) {
             setResult("correct");
-            setSolved(prev => new Set(prev).add(selectedScenario.id));
+            completePractice(selectedScenario.id);
           } else {
             setMoveIndex(i => i + 1);
           }

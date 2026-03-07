@@ -516,16 +516,17 @@ const difficultyColors: Record<string, string> = {
 };
 
 const Lessons = () => {
+  const { profile, completeLesson } = useProfile();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
 
+  const completedLessons = new Set(profile.completed_lessons);
   const filtered = activeCategory === "all" ? LESSONS : LESSONS.filter((l) => l.category === activeCategory);
 
   const handleComplete = () => {
     if (selectedLesson) {
-      setCompletedLessons((prev) => new Set(prev).add(selectedLesson.id));
+      completeLesson(selectedLesson.id);
     }
   };
 

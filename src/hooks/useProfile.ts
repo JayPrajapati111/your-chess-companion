@@ -11,6 +11,8 @@ export interface ProfileData {
   losses: number;
   draws: number;
   puzzles_solved: number;
+  completed_lessons: string[];
+  completed_practices: string[];
 }
 
 const DEFAULT_PROFILE: Omit<ProfileData, "id" | "user_id"> = {
@@ -21,6 +23,8 @@ const DEFAULT_PROFILE: Omit<ProfileData, "id" | "user_id"> = {
   losses: 0,
   draws: 0,
   puzzles_solved: 0,
+  completed_lessons: [],
+  completed_practices: [],
 };
 
 const LOCAL_KEY = "chess_profile";
@@ -29,7 +33,13 @@ const LOCAL_GAMES_KEY = "chess_game_history";
 function getLocalProfile(): ProfileData {
   try {
     const stored = localStorage.getItem(LOCAL_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        ...{ id: "local", user_id: "local", ...DEFAULT_PROFILE },
+        ...parsed,
+      };
+    }
   } catch {}
   return { id: "local", user_id: "local", ...DEFAULT_PROFILE };
 }
@@ -73,9 +83,10 @@ export function useProfile() {
             losses: data.losses ?? 0,
             draws: data.draws ?? 0,
             puzzles_solved: data.puzzles_solved ?? 0,
+            completed_lessons: (data as any).completed_lessons ?? [],
+            completed_practices: (data as any).completed_practices ?? [],
           });
         }
-        // Load game history
         const { data: games } = await supabase
           .from("games")
           .select("*")
@@ -108,7 +119,9 @@ export function useProfile() {
           losses: newProfile.losses,
           draws: newProfile.draws,
           puzzles_solved: newProfile.puzzles_solved,
-        })
+          completed_lessons: newProfile.completed_lessons,
+          completed_practices: newProfile.completed_practices,
+        } as any)
         .eq("user_id", newProfile.user_id);
     } else {
       saveLocalProfile(newProfile);
@@ -131,16 +144,28 @@ export function useProfile() {
     setGameHistory(prev => [record, ...prev].slice(0, 50));
   }, [isAuthenticated, profile.user_id, gameHistory]);
 
+  const completeLesson = useCallback(async (lessonId: string) => {
+    if (profile.completed_lessons.includes(lessonId)) return;
+    const updated = [...profile.completed_lessons, lessonId];
+    await updateProfile({ completed_lessons: updated });
+  }, [profile, updateProfile]);
+
+  const completePractice = useCallback(async (practiceId: string) => {
+    if (profile.completed_practices.includes(practiceId)) return;
+    const updated = [...profile.completed_practices, practiceId];
+    await updateProfile({ completed_practices: updated });
+  }, [profile, updateProfile]);
+
   const resetProfile = useCallback(async () => {
     const resetData = { ...DEFAULT_PROFILE };
     const newProfile = { ...profile, ...resetData };
     setProfile(newProfile);
     if (isAuthenticated) {
-      await supabase.from("profiles").update(resetData).eq("user_id", newProfile.user_id);
+      await supabase.from("profiles").update(resetData as any).eq("user_id", newProfile.user_id);
     } else {
       saveLocalProfile(newProfile);
     }
   }, [profile, isAuthenticated]);
 
-  return { profile, updateProfile, loading, isAuthenticated, gameHistory, saveGame, resetProfile };
+  return { profile, updateProfile, loading, isAuthenticated, gameHistory, saveGame, resetProfile, completeLesson, completePractice };
 }

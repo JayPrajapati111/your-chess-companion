@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpen, Target, Crown, Shield, Zap, ChevronRight, Swords, 
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { PIECE_SYMBOLS } from "@/lib/chess";
+import { useProfile } from "@/hooks/useProfile";
 
 // Mini board renderer for lesson visuals
 const MiniBoard = ({ pieces, size = 6 }: { pieces: { row: number; col: number; symbol: string }[]; size?: number }) => {
@@ -516,16 +517,17 @@ const difficultyColors: Record<string, string> = {
 };
 
 const Lessons = () => {
+  const { profile, completeLesson } = useProfile();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
 
+  const completedLessons = new Set(profile.completed_lessons);
   const filtered = activeCategory === "all" ? LESSONS : LESSONS.filter((l) => l.category === activeCategory);
 
   const handleComplete = () => {
     if (selectedLesson) {
-      setCompletedLessons((prev) => new Set(prev).add(selectedLesson.id));
+      completeLesson(selectedLesson.id);
     }
   };
 

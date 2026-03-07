@@ -49,6 +49,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          completed_lessons: string[] | null
+          completed_practices: string[] | null
           created_at: string
           display_name: string | null
           draws: number | null
@@ -62,6 +64,8 @@ export type Database = {
           wins: number | null
         }
         Insert: {
+          completed_lessons?: string[] | null
+          completed_practices?: string[] | null
           created_at?: string
           display_name?: string | null
           draws?: number | null
@@ -75,6 +79,8 @@ export type Database = {
           wins?: number | null
         }
         Update: {
+          completed_lessons?: string[] | null
+          completed_practices?: string[] | null
           created_at?: string
           display_name?: string | null
           draws?: number | null

@@ -1,10 +1,14 @@
-import { Trophy, Target, Puzzle, TrendingUp, TrendingDown, Minus, Swords, History } from "lucide-react";
+import { Trophy, Target, Puzzle, TrendingUp, TrendingDown, Minus, Swords, History, BookOpen, Dumbbell } from "lucide-react";
 import { ProfileData, GameRecord } from "@/hooks/useProfile";
+import { Progress } from "@/components/ui/progress";
 
 interface ProfileSidebarProps {
   profile: ProfileData;
   gameHistory?: GameRecord[];
 }
+
+const TOTAL_LESSONS = 15;
+const TOTAL_PRACTICES = 20;
 
 const getRatingTier = (rating: number) => {
   if (rating < 600) return { label: "Beginner", color: "text-muted-foreground", stars: 1 };
@@ -20,6 +24,11 @@ export const ProfileSidebar = ({ profile, gameHistory = [] }: ProfileSidebarProp
   const winRate = totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0;
   const gameTier = getRatingTier(profile.game_rating);
   const puzzleTier = getRatingTier(profile.puzzle_rating);
+
+  const lessonsCompleted = profile.completed_lessons?.length ?? 0;
+  const practicesCompleted = profile.completed_practices?.length ?? 0;
+  const lessonsPercent = Math.round((lessonsCompleted / TOTAL_LESSONS) * 100);
+  const practicesPercent = Math.round((practicesCompleted / TOTAL_PRACTICES) * 100);
 
   return (
     <div className="bg-card rounded-2xl border border-border overflow-hidden">
@@ -116,6 +125,32 @@ export const ProfileSidebar = ({ profile, gameHistory = [] }: ProfileSidebarProp
             <span className="text-xs text-muted-foreground">ELO</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">{profile.puzzles_solved} puzzles solved</p>
+        </div>
+
+        {/* Lessons Progress */}
+        <div className="bg-muted/50 rounded-xl p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-foreground">Lessons</span>
+            </div>
+            <span className="text-xs font-bold text-foreground">{lessonsCompleted}/{TOTAL_LESSONS}</span>
+          </div>
+          <Progress value={lessonsPercent} className="h-2" />
+          <p className="text-xs text-muted-foreground mt-1.5">{lessonsPercent}% completed</p>
+        </div>
+
+        {/* Practice Progress */}
+        <div className="bg-muted/50 rounded-xl p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Dumbbell className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-foreground">Practice</span>
+            </div>
+            <span className="text-xs font-bold text-foreground">{practicesCompleted}/{TOTAL_PRACTICES}</span>
+          </div>
+          <Progress value={practicesPercent} className="h-2" />
+          <p className="text-xs text-muted-foreground mt-1.5">{practicesPercent}% completed</p>
         </div>
 
         {/* Recent Games */}

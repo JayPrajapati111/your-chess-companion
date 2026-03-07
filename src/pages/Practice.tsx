@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, RotateCcw, Lightbulb, ChevronRight, CheckCircle2, XCircle } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Board,
   Position,
@@ -421,6 +422,7 @@ const diffColors: Record<string, string> = {
 };
 
 const Practice = () => {
+  const { profile, completePractice } = useProfile();
   const [selectedScenario, setSelectedScenario] = useState<PracticeScenario | null>(null);
   const [board, setBoard] = useState<Board>(emptyBoard());
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
@@ -428,7 +430,7 @@ const Practice = () => {
   const [moveIndex, setMoveIndex] = useState(0);
   const [result, setResult] = useState<"correct" | "wrong" | null>(null);
   const [showHint, setShowHint] = useState(false);
-  const [solved, setSolved] = useState<Set<string>>(new Set());
+  const solved = new Set(profile.completed_practices);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   const castlingRights = createInitialCastlingRights();
@@ -478,7 +480,7 @@ const Practice = () => {
 
           if (moveIndex + 1 >= selectedScenario.solution.length) {
             setResult("correct");
-            setSolved(prev => new Set(prev).add(selectedScenario.id));
+            completePractice(selectedScenario.id);
           } else {
             setMoveIndex(i => i + 1);
           }
